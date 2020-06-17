@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
 import Browser.Hash as Hash
@@ -17,8 +17,11 @@ import Http
 
 -- MAIN
 
+type alias Flag =
+  { baseUrl : String
+  }
 
-main : Program () Model Msg
+main : Program Flag Model Msg
 main =
   Hash.application
     { init = init
@@ -59,6 +62,7 @@ urlParser =
 type alias Model =
   { key : Nav.Key
   , url : Url.Url
+  , baseUrl : String
   , loggedIn : Bool
   , navbarState : Navbar.State
   , projectState : ProjectModel
@@ -67,13 +71,15 @@ type alias Model =
 
 type alias ProjectModel =
   { requestStatus : RequestStatus
-  , project : Dropdown.State
+  , project : Project
+  , projects : ProjectsView
   , selectedProject : String
   }
 
 type alias TransactionModel =
   { requestStatus : RequestStatus
   , projects : List Project
+  , projectsDropdown : Dropdown.State
   }
 
 type RequestStatus 
@@ -89,6 +95,7 @@ type alias ApiKey =
   , apiKey : String
   }
 
+apiKeyDecoder : Decoder ApiKey
 apiKeyDecoder =
   Decode.map2 ApiKey
     (field "id" int)
@@ -101,6 +108,16 @@ type alias Project =
   , startDate: String
   , updatedAt: String
   , createdAt: String
+  }
+
+initialProject : Project
+initialProject =
+  { id = 0
+  , uid = ""
+  , name = ""
+  , startDate = ""
+  , updatedAt = ""
+  , createdAt = ""
   }
 
 projectDecoder =
@@ -300,28 +317,37 @@ itemStockViewDecoder =
     (field "item" itemDecoder)
     (field "inStock" int)
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
+init : Flag -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flag url key =
   let
     (navbarState, navbarCmd) = Navbar.initialState NavbarMsg
 
     initialProjectModel : ProjectModel
     initialProjectModel =
-      { project = Dropdown.initialState
+      { project = initialProject
       , requestStatus = NotAsked
       , selectedProject = "Select Project"
+      , projects = initialProjectsView
+      }
+
+    initialProjectsView : ProjectsView
+    initialProjectsView =
+      { projects = []
+      , totalIncome = 0
       }
 
     initialTransactionModel : TransactionModel
     initialTransactionModel =
       { requestStatus = NotAsked
-      , projects = [] 
+      , projects = []
+      , projectsDropdown = Dropdown.initialState 
       }
 
     initialModel : Model 
     initialModel =
       { key = key
       , url = url
+      , baseUrl = flag.baseUrl
       , loggedIn = False
       , navbarState = navbarState
       , projectState = initialProjectModel
@@ -329,7 +355,10 @@ init flags url key =
       }
   in
   
-  ( initialModel, Cmd.batch [ navbarCmd ] )
+  ( initialModel
+  , Cmd.batch 
+      [ navbarCmd ] 
+  )
 
 
 
@@ -344,7 +373,10 @@ type Msg
   | Logout
   | ToggleProject Dropdown.State
   | SelectProject String
+  | GotProject (Result Http.Error (Project))
   | GotProjects (Result Http.Error (List Project))
+  | GotProjectsView (Result Http.Error ProjectsView)
+  | ResetProject String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -359,9 +391,7 @@ update msg model =
           ( model, Nav.load href )
 
     UrlChanged url ->
-      ( { model | url = url }
-      , Cmd.none
-      )
+      ( { model | url = url }, fetchByUrl model.baseUrl url  )
 
     Login ->
       let 
@@ -369,7 +399,7 @@ update msg model =
           Http.request
             { method = "GET"
             , headers = []
-            , url = "http://localhost:8080/projects"
+            , url = model.baseUrl ++ "/projects"
             , body = Http.emptyBody
             , expect = Http.expectJson GotProjects (Decode.list projectDecoder)
             , timeout = Nothing
@@ -379,7 +409,12 @@ update msg model =
         transactionState = model.transactionState
         newTransactionState = { transactionState | requestStatus = Loading }
       in
-      ( { model | loggedIn = True, transactionState = newTransactionState }, Cmd.batch [ getProjects ] )
+      ( { model | loggedIn = True, transactionState = newTransactionState }
+      , Cmd.batch 
+          [ getProjects 
+          , fetchByUrl model.baseUrl model.url
+          ] 
+      )
 
     Logout ->
       ( { model | loggedIn = False }, Cmd.none )
@@ -389,17 +424,20 @@ update msg model =
 
     ToggleProject state ->
       let
-        projectState = model.projectState
-        newProjectState = { projectState | project = state }
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | projectsDropdown = state }
       in
-      ( { model | projectState = newProjectState }, Cmd.none )
+      ( { model | transactionState = newTransactionState }, Cmd.none )
     
     SelectProject projectName ->
       let
         projectState = model.projectState
         newProjectState = { projectState | selectedProject = projectName }
+
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | requestStatus = Loading }
       in
-        ( { model | projectState = newProjectState }, Cmd.none )
+        ( { model | projectState = newProjectState, transactionState = newTransactionState }, Cmd.none )
 
     GotProjects res ->
       case res of
@@ -413,14 +451,53 @@ update msg model =
         Err _ ->
           ( model, Cmd.none )
 
+    GotProjectsView res ->
+      case res of
+        Ok projectViews ->
+          let
+            projectState = model.projectState
+            newProjectState = { projectState | projects = projectViews, requestStatus = Success }
+          in
+          (Debug.log <| Debug.toString newProjectState)
+          ( { model | projectState = newProjectState }, Cmd.none )
+
+        Err e ->
+          (Debug.log <| "Error decoding project views" ++ Debug.toString e)
+          ( model, Cmd.none )
+
+    GotProject res ->
+      case res of
+        Ok project ->
+          let
+            projectState = model.projectState
+            newProjectState = { projectState | project = project }
+          in
+          (Debug.log <| Debug.toString project)
+          ( { model | projectState = newProjectState }, Cmd.none )
+
+        Err _ ->
+          ( model, Cmd.none )
+        
+    ResetProject _ ->
+      let
+        projectState = model.projectState
+        newProjectState = { projectState | project = initialProject }
+      in
+      ( { model | projectState = newProjectState }, Cmd.none )
+
+-- PORTS
+port resetProjectForm : () -> Cmd msg
+port resetProjectFormReceiver : (String -> msg) -> Sub msg
+
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.batch [ 
-    Dropdown.subscriptions model.projectState.project ToggleProject
-  ]
+  Sub.batch 
+    [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject
+    , resetProjectFormReceiver ResetProject
+    ]
 
 -- VIEW
 
@@ -431,40 +508,39 @@ view model =
     page = Maybe.withDefault Index <| Url.parse urlParser <| model.url
     currentPage =
       if not model.loggedIn then
-        loginPage model
+        Tuple.pair "Login" (loginPage model)
       else
         case page of
           Index ->
-            transactionPage model
+            Tuple.pair "Index" (transactionPage model)
 
           ProjectPage ->
-            projectPage model
+            Tuple.pair "Projects" (projectPage model)
 
           ProjectDetail projectId ->
-            projectDetailPage model projectId
+            Tuple.pair "Project Detail" (projectDetailPage model projectId)
 
           ItemPage ->
-            itemPage model
+            Tuple.pair "Items" (itemPage model)
 
           ItemDetail itemId ->
-            itemPage model
+            Tuple.pair "Item Detail" (itemPage model)
 
           TransactionPage ->
-            transactionPage model
+            Tuple.pair "Transactiosns" (transactionPage model)
 
           TransactionDetail transactionId ->
-            transactionPage model
+            Tuple.pair "Transaction Detail" (transactionPage model)
             
   in
-  { title = "URL Interceptor"
+  { title = ("Cozy PoS | " ++ Tuple.first currentPage)
   , body =
-      [ currentPage
+      [ Tuple.second currentPage
       , text "The current URL is: "
       , b [] [ text (Url.toString model.url) ]
       ]
   }
 
-   
 loginPage model =
   div []
     [ text "Cozy PoS"
@@ -505,15 +581,16 @@ transactionPage model =
     [ navbar model
     , div [ class "m-2" ]
         [ Dropdown.dropdown
-            model.projectState.project
+            model.transactionState.projectsDropdown
               { options = []
               , toggleMsg = ToggleProject
               , toggleButton =
                   Dropdown.toggle [ Button.primary ] [ text model.projectState.selectedProject ]
               , items =
-                  [ Dropdown.buttonItem [ onClick <| SelectProject "test project 1" ] [ text "Test project 1" ]
-                  , Dropdown.buttonItem [ onClick <| SelectProject "test projext 2" ] [ text "Test project 2" ]
-                  ]
+                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project.name) ] [ text project.name ] ) model.transactionState.projects  
+                  -- [ Dropdown.buttonItem [ onClick <| SelectProject "test project 1" ] [ text "Test project 1" ]
+                  -- , Dropdown.buttonItem [ onClick <| SelectProject "test projext 2" ] [ text "Test project 2" ]
+                  -- ]
               }
         ]
     , div [] 
@@ -538,11 +615,61 @@ projectPage model =
       , Button.attrs [ href "/#/projects/new" ]
       ]
       [ text "Add" ]
+  , div []
+      (List.map projectCard model.projectState.projects.projects)
   ]
+
+projectCard projectView =
+  div []
+    [ a [ href ("/#/projects/" ++ String.fromInt projectView.project.id) ] 
+        [ text projectView.project.name ]
+    ]
+
 
 projectDetailPage model projectId =
   div []
     [ navbar model
     , text ("This is the project detail page, project id: " ++ projectId)
+    , div [] [ text <| Debug.toString model.projectState.project ]
     , div [] [ text "Some form" ]
     ]
+
+-- HELPERS
+
+sendRequest baseUrl method target body expect =
+  Http.request
+    { method = method
+    , headers = []
+    , url = baseUrl ++ target
+    , body = body
+    , expect = expect
+    , timeout = Nothing
+    , tracker = Nothing
+    }
+
+fetchByUrl baseUrl url =
+  let
+    page = Maybe.withDefault Index <| Url.parse urlParser <| url
+  in
+  case page of
+      ProjectPage ->
+        sendRequest baseUrl "GET" "/projectsview" Http.emptyBody (Http.expectJson GotProjectsView projectsViewDecoder)
+
+      ProjectDetail projectId ->
+        let
+          projectIdInt = String.toInt projectId
+        in
+          case projectIdInt of
+              Just id ->
+                sendRequest 
+                  baseUrl
+                  "GET" 
+                  ("/projects/" ++ String.fromInt id) 
+                  Http.emptyBody 
+                  (Http.expectJson GotProject projectDecoder)
+
+              Nothing ->
+                resetProjectForm ()
+
+      _ ->
+        Cmd.none

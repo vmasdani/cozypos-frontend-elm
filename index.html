@@ -8,6 +8,17 @@
   <script src="main.js"></script>
 </head>
 <body>
-  <script>var app = Elm.Main.init();</script>
+  <script>
+    var app = Elm.Main.init({
+      flags: {
+        baseUrl: 'http://localhost:8080'
+      }
+    });
+
+    app.ports.resetProjectForm.subscribe(function() {
+      app.ports.resetProjectFormReceiver.send("");
+    }); 
+
+  </script>
 </body>
 </html>
