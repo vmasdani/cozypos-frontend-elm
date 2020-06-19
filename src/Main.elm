@@ -1,4 +1,4 @@
-port module Main exposing (..)
+module Main exposing (..)
 
 import Browser
 import Browser.Hash as Hash
@@ -11,6 +11,8 @@ import Url.Parser as Url exposing (Parser, (</>))
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Button as Button
 import Bootstrap.Dropdown as Dropdown
+import Bootstrap.Form as Form
+import Bootstrap.Form.Input as Input
 import Bootstrap.Breadcrumb exposing (item)
 import Json.Decode as Decode exposing (Decoder, int, string, float, field, bool, list)
 import Http
@@ -19,6 +21,7 @@ import Http
 
 type alias Flag =
   { baseUrl : String
+  , currentDate : String
   }
 
 main : Program Flag Model Msg
@@ -62,6 +65,7 @@ urlParser =
 type alias Model =
   { key : Nav.Key
   , url : Url.Url
+  , currentDate : String
   , baseUrl : String
   , loggedIn : Bool
   , navbarState : Navbar.State
@@ -73,13 +77,23 @@ type alias ProjectModel =
   { requestStatus : RequestStatus
   , project : Project
   , projects : ProjectsView
-  , selectedProject : String
   }
 
 type alias TransactionModel =
   { requestStatus : RequestStatus
   , projects : List Project
   , projectsDropdown : Dropdown.State
+  , projectTransactionsView : ProjectTransactionsView
+  , selectedProject : String
+  }
+
+initialTransactionModel : TransactionModel
+initialTransactionModel =
+  { requestStatus = NotAsked
+  , projects = []
+  , projectsDropdown = Dropdown.initialState
+  , projectTransactionsView = initialProjectTransationsView
+  , selectedProject = "Select Project"
   }
 
 type RequestStatus 
@@ -285,6 +299,12 @@ projectTransactionsViewDecoder =
     (field "project" projectDecoder)
     (field "transactions" (Decode.list transactionViewDecoder))
 
+initialProjectTransationsView : ProjectTransactionsView
+initialProjectTransationsView =
+  { project = initialProject
+  , transactions = []
+  }
+
 type alias TransactionView =
   { transaction : Transaction
   , itemTransactions : List ItemTransactionView
@@ -326,7 +346,6 @@ init flag url key =
     initialProjectModel =
       { project = initialProject
       , requestStatus = NotAsked
-      , selectedProject = "Select Project"
       , projects = initialProjectsView
       }
 
@@ -336,18 +355,12 @@ init flag url key =
       , totalIncome = 0
       }
 
-    initialTransactionModel : TransactionModel
-    initialTransactionModel =
-      { requestStatus = NotAsked
-      , projects = []
-      , projectsDropdown = Dropdown.initialState 
-      }
-
     initialModel : Model 
     initialModel =
       { key = key
       , url = url
       , baseUrl = flag.baseUrl
+      , currentDate = flag.currentDate
       , loggedIn = False
       , navbarState = navbarState
       , projectState = initialProjectModel
@@ -372,12 +385,15 @@ type Msg
   | Login
   | Logout
   | ToggleProject Dropdown.State
-  | SelectProject String
+  | SelectProject Int String
   | GotProject (Result Http.Error (Project))
   | GotProjects (Result Http.Error (List Project))
   | GotProjectsView (Result Http.Error ProjectsView)
-  | ResetProject String
-
+  | GotItems (Result Http.Error (List Item))
+  -- Project
+  | InputProjectName String
+  | InputProjectDate String
+  | SaveProject
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -391,30 +407,16 @@ update msg model =
           ( model, Nav.load href )
 
     UrlChanged url ->
-      ( { model | url = url }, fetchByUrl model.baseUrl url  )
+      fetchByUrl 
+        model
+        url 
+        model.loggedIn
 
     Login ->
-      let 
-        getProjects = 
-          Http.request
-            { method = "GET"
-            , headers = []
-            , url = model.baseUrl ++ "/projects"
-            , body = Http.emptyBody
-            , expect = Http.expectJson GotProjects (Decode.list projectDecoder)
-            , timeout = Nothing
-            , tracker = Nothing
-            }
-
-        transactionState = model.transactionState
-        newTransactionState = { transactionState | requestStatus = Loading }
-      in
-      ( { model | loggedIn = True, transactionState = newTransactionState }
-      , Cmd.batch 
-          [ getProjects 
-          , fetchByUrl model.baseUrl model.url
-          ] 
-      )
+      fetchByUrl 
+        model
+        model.url
+        True
 
     Logout ->
       ( { model | loggedIn = False }, Cmd.none )
@@ -429,15 +431,12 @@ update msg model =
       in
       ( { model | transactionState = newTransactionState }, Cmd.none )
     
-    SelectProject projectName ->
+    SelectProject projectId projectName ->
       let
-        projectState = model.projectState
-        newProjectState = { projectState | selectedProject = projectName }
-
         transactionState = model.transactionState
-        newTransactionState = { transactionState | requestStatus = Loading }
+        newTransactionState = { transactionState | requestStatus = Loading, selectedProject = projectName }
       in
-        ( { model | projectState = newProjectState, transactionState = newTransactionState }, Cmd.none )
+        ( { model | transactionState = newTransactionState }, Cmd.none )
 
     GotProjects res ->
       case res of
@@ -477,17 +476,43 @@ update msg model =
 
         Err _ ->
           ( model, Cmd.none )
+
+    GotItems res ->
+      case res of
+        Ok item ->
+          ( model, Cmd.none )
         
-    ResetProject _ ->
+        Err _ ->
+          ( model, Cmd.none )
+
+    InputProjectName name ->
       let
         projectState = model.projectState
-        newProjectState = { projectState | project = initialProject }
+        project = projectState.project
+
+        newProject = { project | name = name }
+        newProjectState = { projectState | project = newProject }
       in
       ( { model | projectState = newProjectState }, Cmd.none )
 
--- PORTS
-port resetProjectForm : () -> Cmd msg
-port resetProjectFormReceiver : (String -> msg) -> Sub msg
+    InputProjectDate date ->
+      let
+        projectState = model.projectState
+        project = projectState.project
+
+        newProject = { project | startDate = date }
+        newProjectState = { projectState | project = newProject }
+      in
+      ( { model | projectState = newProjectState }, Cmd.none )
+
+    SaveProject ->
+      let
+        project = model.projectState.project
+        startDate = if project.startDate == "" then model.currentDate else project.startDate
+        parsedProject = { project | startDate = startDate }
+      in
+      (Debug.log <| Debug.toString parsedProject)
+      ( model, Cmd.none )
 
 -- SUBSCRIPTIONS
 
@@ -495,9 +520,7 @@ port resetProjectFormReceiver : (String -> msg) -> Sub msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch 
-    [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject
-    , resetProjectFormReceiver ResetProject
-    ]
+    [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject ]
 
 -- VIEW
 
@@ -585,9 +608,9 @@ transactionPage model =
               { options = []
               , toggleMsg = ToggleProject
               , toggleButton =
-                  Dropdown.toggle [ Button.primary ] [ text model.projectState.selectedProject ]
+                  Dropdown.toggle [ Button.primary ] [ text model.transactionState.selectedProject ]
               , items =
-                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project.name) ] [ text project.name ] ) model.transactionState.projects  
+                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project.id project.name) ] [ text project.name ] ) model.transactionState.projects  
                   -- [ Dropdown.buttonItem [ onClick <| SelectProject "test project 1" ] [ text "Test project 1" ]
                   -- , Dropdown.buttonItem [ onClick <| SelectProject "test projext 2" ] [ text "Test project 2" ]
                   -- ]
@@ -629,9 +652,32 @@ projectCard projectView =
 projectDetailPage model projectId =
   div []
     [ navbar model
+    , div []
+        [ a [ href "/#/projects" ] [ text "Back" ] ]
     , text ("This is the project detail page, project id: " ++ projectId)
     , div [] [ text <| Debug.toString model.projectState.project ]
     , div [] [ text "Some form" ]
+    , div []
+        [ Form.form [ class "m-2" ]
+            [ Form.group []
+                [ Form.label [ for "projectname" ] [ text "Project Name" ]
+                , Input.text 
+                    [ Input.id "projectname"
+                    , Input.onInput InputProjectName
+                    , Input.value model.projectState.project.name
+                    ]
+                ]
+            , Form.group []
+                [ Form.label [ for "projectdate" ] [ text "Project Date" ]
+                , Input.date 
+                    [ Input.id "projectdate"
+                    , Input.onInput InputProjectDate 
+                    , Input.value (String.slice 0 10 model.projectState.project.startDate)
+                    ]
+                ]
+            , Button.button [ Button.primary, Button.onClick SaveProject ] [ text "Save" ]
+            ]
+        ]
     ]
 
 -- HELPERS
@@ -647,29 +693,68 @@ sendRequest baseUrl method target body expect =
     , tracker = Nothing
     }
 
-fetchByUrl baseUrl url =
+fetchByUrl model url loginState =
   let
     page = Maybe.withDefault Index <| Url.parse urlParser <| url
+    newModel = { model | loggedIn = loginState, url = url }
   in
   case page of
-      ProjectPage ->
-        sendRequest baseUrl "GET" "/projectsview" Http.emptyBody (Http.expectJson GotProjectsView projectsViewDecoder)
+    ProjectPage ->
+      ( newModel 
+      , Cmd.batch 
+          [ sendRequest 
+              model.baseUrl 
+              "GET" 
+              "/projectsview" 
+              Http.emptyBody 
+              (Http.expectJson GotProjectsView projectsViewDecoder)
+          ] 
+      )
 
-      ProjectDetail projectId ->
-        let
-          projectIdInt = String.toInt projectId
-        in
-          case projectIdInt of
-              Just id ->
-                sendRequest 
-                  baseUrl
+    ProjectDetail projectId ->
+      let
+        projectIdInt = String.toInt projectId
+      in
+        case projectIdInt of
+            Just id ->
+              ( newModel
+              , sendRequest 
+                  model.baseUrl
                   "GET" 
                   ("/projects/" ++ String.fromInt id) 
                   Http.emptyBody 
-                  (Http.expectJson GotProject projectDecoder)
+                  (Http.expectJson GotProject projectDecoder) 
+              )
 
-              Nothing ->
-                resetProjectForm ()
+            Nothing ->
+              let 
+                projectState = model.projectState
+              
+                newProjectState = { projectState | project = initialProject }
+                newModelResetProject = { newModel | projectState = newProjectState }
+              in
+              ( newModelResetProject
+              , Cmd.none
+              )
+    TransactionPage ->
+      ( { newModel | transactionState = initialTransactionModel }
+      , sendRequest
+          model.baseUrl
+          "GET"
+          "/projects"
+          Http.emptyBody
+          (Http.expectJson GotProjects (Decode.list projectDecoder)) 
+      )
 
-      _ ->
-        Cmd.none
+    ItemPage ->
+      ( newModel
+      , sendRequest
+          model.baseUrl
+          "GET"
+          "/items"
+          Http.emptyBody
+          (Http.expectJson GotItems (Decode.list itemDecoder)) 
+      )
+
+    _ ->
+      ( newModel, Cmd.none )

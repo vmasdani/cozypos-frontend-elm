@@ -5411,20 +5411,6 @@ var $author$project$Main$NavbarMsg = function (a) {
 var $author$project$Main$NotAsked = {$: 'NotAsked'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $author$project$Main$initialProject = {createdAt: '', id: 0, name: '', startDate: '', uid: '', updatedAt: ''};
-var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area = F4(
-	function (top, left, width, height) {
-		return {height: height, left: left, top: top, width: width};
-	});
-var $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed = {$: 'Closed'};
-var $rundis$elm_bootstrap$Bootstrap$Dropdown$State = function (a) {
-	return {$: 'State', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState = $rundis$elm_bootstrap$Bootstrap$Dropdown$State(
-	{
-		menuSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0),
-		status: $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed,
-		toggleSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0)
-	});
 var $rundis$elm_bootstrap$Bootstrap$Navbar$Hidden = {$: 'Hidden'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$State = function (a) {
 	return {$: 'State', a: a};
@@ -5464,15 +5450,30 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$initialState = function (toMsg) {
 		state,
 		A2($rundis$elm_bootstrap$Bootstrap$Navbar$initWindowSize, toMsg, state));
 };
+var $author$project$Main$initialProjectTransationsView = {project: $author$project$Main$initialProject, transactions: _List_Nil};
+var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area = F4(
+	function (top, left, width, height) {
+		return {height: height, left: left, top: top, width: width};
+	});
+var $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed = {$: 'Closed'};
+var $rundis$elm_bootstrap$Bootstrap$Dropdown$State = function (a) {
+	return {$: 'State', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState = $rundis$elm_bootstrap$Bootstrap$Dropdown$State(
+	{
+		menuSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0),
+		status: $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed,
+		toggleSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0)
+	});
+var $author$project$Main$initialTransactionModel = {projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, selectedProject: 'Select Project'};
 var $author$project$Main$init = F3(
 	function (flag, url, key) {
-		var initialTransactionModel = {projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked};
 		var initialProjectsView = {projects: _List_Nil, totalIncome: 0};
-		var initialProjectModel = {project: $author$project$Main$initialProject, projects: initialProjectsView, requestStatus: $author$project$Main$NotAsked, selectedProject: 'Select Project'};
+		var initialProjectModel = {project: $author$project$Main$initialProject, projects: initialProjectsView, requestStatus: $author$project$Main$NotAsked};
 		var _v0 = $rundis$elm_bootstrap$Bootstrap$Navbar$initialState($author$project$Main$NavbarMsg);
 		var navbarState = _v0.a;
 		var navbarCmd = _v0.b;
-		var initialModel = {baseUrl: flag.baseUrl, key: key, loggedIn: false, navbarState: navbarState, projectState: initialProjectModel, transactionState: initialTransactionModel, url: url};
+		var initialModel = {baseUrl: flag.baseUrl, currentDate: flag.currentDate, key: key, loggedIn: false, navbarState: navbarState, projectState: initialProjectModel, transactionState: $author$project$Main$initialTransactionModel, url: url};
 		return _Utils_Tuple2(
 			initialModel,
 			$elm$core$Platform$Cmd$batch(
@@ -5480,14 +5481,10 @@ var $author$project$Main$init = F3(
 					[navbarCmd])));
 	});
 var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Main$ResetProject = function (a) {
-	return {$: 'ResetProject', a: a};
-};
 var $author$project$Main$ToggleProject = function (a) {
 	return {$: 'ToggleProject', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $author$project$Main$resetProjectFormReceiver = _Platform_incomingPort('resetProjectFormReceiver', $elm$json$Json$Decode$string);
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$ListenClicks = {$: 'ListenClicks'};
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $elm$browser$Browser$AnimationManager$Time = function (a) {
@@ -6047,15 +6044,24 @@ var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				A2($rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions, model.transactionState.projectsDropdown, $author$project$Main$ToggleProject),
-				$author$project$Main$resetProjectFormReceiver($author$project$Main$ResetProject)
+				A2($rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions, model.transactionState.projectsDropdown, $author$project$Main$ToggleProject)
 			]));
+};
+var $author$project$Main$Loading = {$: 'Loading'};
+var $author$project$Main$Success = {$: 'Success'};
+var $author$project$Main$GotItems = function (a) {
+	return {$: 'GotItems', a: a};
+};
+var $author$project$Main$GotProject = function (a) {
+	return {$: 'GotProject', a: a};
 };
 var $author$project$Main$GotProjects = function (a) {
 	return {$: 'GotProjects', a: a};
 };
-var $author$project$Main$Loading = {$: 'Loading'};
-var $author$project$Main$Success = {$: 'Success'};
+var $author$project$Main$GotProjectsView = function (a) {
+	return {$: 'GotProjectsView', a: a};
+};
+var $author$project$Main$Index = {$: 'Index'};
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -6559,13 +6565,24 @@ var $elm$http$Http$expectJson = F2(
 						A2($elm$json$Json$Decode$decodeString, decoder, string));
 				}));
 	});
-var $author$project$Main$GotProject = function (a) {
-	return {$: 'GotProject', a: a};
-};
-var $author$project$Main$GotProjectsView = function (a) {
-	return {$: 'GotProjectsView', a: a};
-};
-var $author$project$Main$Index = {$: 'Index'};
+var $author$project$Main$Item = F8(
+	function (id, uid, name, description, price, manufacturingPrice, updatedAt, createdAt) {
+		return {createdAt: createdAt, description: description, id: id, manufacturingPrice: manufacturingPrice, name: name, price: price, uid: uid, updatedAt: updatedAt};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$map8 = _Json_map8;
+var $author$project$Main$itemDecoder = A9(
+	$elm$json$Json$Decode$map8,
+	$author$project$Main$Item,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'description', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'price', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'manufacturingPrice', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$url$Url$Parser$State = F5(
 	function (visited, unvisited, params, frag, value) {
@@ -6690,7 +6707,6 @@ var $author$project$Main$Project = F6(
 	function (id, uid, name, startDate, updatedAt, createdAt) {
 		return {createdAt: createdAt, id: id, name: name, startDate: startDate, uid: uid, updatedAt: updatedAt};
 	});
-var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$map6 = _Json_map6;
 var $author$project$Main$projectDecoder = A7(
 	$elm$json$Json$Decode$map6,
@@ -6705,7 +6721,6 @@ var $author$project$Main$ProjectsView = F2(
 	function (projects, totalIncome) {
 		return {projects: projects, totalIncome: totalIncome};
 	});
-var $elm$json$Json$Decode$list = _Json_decodeList;
 var $author$project$Main$ProjectView = F3(
 	function (project, income, totalManufacturingPrice) {
 		return {income: income, project: project, totalManufacturingPrice: totalManufacturingPrice};
@@ -6725,12 +6740,6 @@ var $author$project$Main$projectsViewDecoder = A3(
 		'projects',
 		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder)),
 	A2($elm$json$Json$Decode$field, 'totalIncome', $elm$json$Json$Decode$int));
-var $elm$json$Json$Encode$null = _Json_encodeNull;
-var $author$project$Main$resetProjectForm = _Platform_outgoingPort(
-	'resetProjectForm',
-	function ($) {
-		return $elm$json$Json$Encode$null;
-	});
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -7082,38 +7091,84 @@ var $author$project$Main$urlParser = $elm$url$Url$Parser$oneOf(
 				$elm$url$Url$Parser$s('transactions'),
 				$elm$url$Url$Parser$string))
 		]));
-var $author$project$Main$fetchByUrl = F2(
-	function (baseUrl, url) {
+var $author$project$Main$fetchByUrl = F3(
+	function (model, url, loginState) {
 		var page = A2(
 			$elm$core$Maybe$withDefault,
 			$author$project$Main$Index,
 			A2($elm$url$Url$Parser$parse, $author$project$Main$urlParser, url));
+		var newModel = _Utils_update(
+			model,
+			{loggedIn: loginState, url: url});
 		switch (page.$) {
 			case 'ProjectPage':
-				return A5(
-					$author$project$Main$sendRequest,
-					baseUrl,
-					'GET',
-					'/projectsview',
-					$elm$http$Http$emptyBody,
-					A2($elm$http$Http$expectJson, $author$project$Main$GotProjectsView, $author$project$Main$projectsViewDecoder));
+				return _Utils_Tuple2(
+					newModel,
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								A5(
+								$author$project$Main$sendRequest,
+								model.baseUrl,
+								'GET',
+								'/projectsview',
+								$elm$http$Http$emptyBody,
+								A2($elm$http$Http$expectJson, $author$project$Main$GotProjectsView, $author$project$Main$projectsViewDecoder))
+							])));
 			case 'ProjectDetail':
 				var projectId = page.a;
 				var projectIdInt = $elm$core$String$toInt(projectId);
 				if (projectIdInt.$ === 'Just') {
 					var id = projectIdInt.a;
-					return A5(
-						$author$project$Main$sendRequest,
-						baseUrl,
-						'GET',
-						'/projects/' + $elm$core$String$fromInt(id),
-						$elm$http$Http$emptyBody,
-						A2($elm$http$Http$expectJson, $author$project$Main$GotProject, $author$project$Main$projectDecoder));
+					return _Utils_Tuple2(
+						newModel,
+						A5(
+							$author$project$Main$sendRequest,
+							model.baseUrl,
+							'GET',
+							'/projects/' + $elm$core$String$fromInt(id),
+							$elm$http$Http$emptyBody,
+							A2($elm$http$Http$expectJson, $author$project$Main$GotProject, $author$project$Main$projectDecoder)));
 				} else {
-					return $author$project$Main$resetProjectForm(_Utils_Tuple0);
+					var projectState = model.projectState;
+					var newProjectState = _Utils_update(
+						projectState,
+						{project: $author$project$Main$initialProject});
+					var newModelResetProject = _Utils_update(
+						newModel,
+						{projectState: newProjectState});
+					return _Utils_Tuple2(newModelResetProject, $elm$core$Platform$Cmd$none);
 				}
+			case 'TransactionPage':
+				return _Utils_Tuple2(
+					_Utils_update(
+						newModel,
+						{transactionState: $author$project$Main$initialTransactionModel}),
+					A5(
+						$author$project$Main$sendRequest,
+						model.baseUrl,
+						'GET',
+						'/projects',
+						$elm$http$Http$emptyBody,
+						A2(
+							$elm$http$Http$expectJson,
+							$author$project$Main$GotProjects,
+							$elm$json$Json$Decode$list($author$project$Main$projectDecoder))));
+			case 'ItemPage':
+				return _Utils_Tuple2(
+					newModel,
+					A5(
+						$author$project$Main$sendRequest,
+						model.baseUrl,
+						'GET',
+						'/items',
+						$elm$http$Http$emptyBody,
+						A2(
+							$elm$http$Http$expectJson,
+							$author$project$Main$GotItems,
+							$elm$json$Json$Decode$list($author$project$Main$itemDecoder))));
 			default:
-				return $elm$core$Platform$Cmd$none;
+				return _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none);
 		}
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
@@ -7185,39 +7240,9 @@ var $author$project$Main$update = F2(
 				}
 			case 'UrlChanged':
 				var url = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{url: url}),
-					A2($author$project$Main$fetchByUrl, model.baseUrl, url));
+				return A3($author$project$Main$fetchByUrl, model, url, model.loggedIn);
 			case 'Login':
-				var transactionState = model.transactionState;
-				var newTransactionState = _Utils_update(
-					transactionState,
-					{requestStatus: $author$project$Main$Loading});
-				var getProjects = $elm$http$Http$request(
-					{
-						body: $elm$http$Http$emptyBody,
-						expect: A2(
-							$elm$http$Http$expectJson,
-							$author$project$Main$GotProjects,
-							$elm$json$Json$Decode$list($author$project$Main$projectDecoder)),
-						headers: _List_Nil,
-						method: 'GET',
-						timeout: $elm$core$Maybe$Nothing,
-						tracker: $elm$core$Maybe$Nothing,
-						url: model.baseUrl + '/projects'
-					});
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{loggedIn: true, transactionState: newTransactionState}),
-					$elm$core$Platform$Cmd$batch(
-						_List_fromArray(
-							[
-								getProjects,
-								A2($author$project$Main$fetchByUrl, model.baseUrl, model.url)
-							])));
+				return A3($author$project$Main$fetchByUrl, model, model.url, true);
 			case 'Logout':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -7243,19 +7268,16 @@ var $author$project$Main$update = F2(
 						{transactionState: newTransactionState}),
 					$elm$core$Platform$Cmd$none);
 			case 'SelectProject':
-				var projectName = msg.a;
+				var projectId = msg.a;
+				var projectName = msg.b;
 				var transactionState = model.transactionState;
-				var projectState = model.projectState;
 				var newTransactionState = _Utils_update(
 					transactionState,
-					{requestStatus: $author$project$Main$Loading});
-				var newProjectState = _Utils_update(
-					projectState,
-					{selectedProject: projectName});
+					{requestStatus: $author$project$Main$Loading, selectedProject: projectName});
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{projectState: newProjectState, transactionState: newTransactionState}),
+						{transactionState: newTransactionState}),
 					$elm$core$Platform$Cmd$none);
 			case 'GotProjects':
 				var res = msg.a;
@@ -7312,16 +7334,53 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'GotItems':
+				var res = msg.a;
+				if (res.$ === 'Ok') {
+					var item = res.a;
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'InputProjectName':
+				var name = msg.a;
 				var projectState = model.projectState;
+				var project = projectState.project;
+				var newProject = _Utils_update(
+					project,
+					{name: name});
 				var newProjectState = _Utils_update(
 					projectState,
-					{project: $author$project$Main$initialProject});
+					{project: newProject});
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{projectState: newProjectState}),
 					$elm$core$Platform$Cmd$none);
+			case 'InputProjectDate':
+				var date = msg.a;
+				var projectState = model.projectState;
+				var project = projectState.project;
+				var newProject = _Utils_update(
+					project,
+					{startDate: date});
+				var newProjectState = _Utils_update(
+					projectState,
+					{project: newProject});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{projectState: newProjectState}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var project = model.projectState.project;
+				var startDate = (project.startDate === '') ? model.currentDate : project.startDate;
+				var parsedProject = _Utils_update(
+					project,
+					{startDate: startDate});
+				return $elm$core$Debug$log(
+					$elm$core$Debug$toString(parsedProject))(
+					_Utils_Tuple2(model, $elm$core$Platform$Cmd$none));
 		}
 	});
 var $elm$html$Html$b = _VirtualDom_node('b');
@@ -8580,6 +8639,293 @@ var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
 	});
+var $author$project$Main$InputProjectDate = function (a) {
+	return {$: 'InputProjectDate', a: a};
+};
+var $author$project$Main$InputProjectName = function (a) {
+	return {$: 'InputProjectName', a: a};
+};
+var $author$project$Main$SaveProject = {$: 'SaveProject'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Date = {$: 'Date'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Input = function (a) {
+	return {$: 'Input', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Type = function (a) {
+	return {$: 'Type', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$create = F2(
+	function (tipe, options) {
+		return $rundis$elm_bootstrap$Bootstrap$Form$Input$Input(
+			{
+				options: A2(
+					$elm$core$List$cons,
+					$rundis$elm_bootstrap$Bootstrap$Form$Input$Type(tipe),
+					options)
+			});
+	});
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$applyModifier = F2(
+	function (modifier, options) {
+		switch (modifier.$) {
+			case 'Size':
+				var size_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						size: $elm$core$Maybe$Just(size_)
+					});
+			case 'Id':
+				var id_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						id: $elm$core$Maybe$Just(id_)
+					});
+			case 'Type':
+				var tipe = modifier.a;
+				return _Utils_update(
+					options,
+					{tipe: tipe});
+			case 'Disabled':
+				var val = modifier.a;
+				return _Utils_update(
+					options,
+					{disabled: val});
+			case 'Value':
+				var value_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						value: $elm$core$Maybe$Just(value_)
+					});
+			case 'Placeholder':
+				var value_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						placeholder: $elm$core$Maybe$Just(value_)
+					});
+			case 'OnInput':
+				var onInput_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						onInput: $elm$core$Maybe$Just(onInput_)
+					});
+			case 'Validation':
+				var validation_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						validation: $elm$core$Maybe$Just(validation_)
+					});
+			case 'Readonly':
+				var val = modifier.a;
+				return _Utils_update(
+					options,
+					{readonly: val});
+			case 'PlainText':
+				var val = modifier.a;
+				return _Utils_update(
+					options,
+					{plainText: val});
+			default:
+				var attrs_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						attributes: _Utils_ap(options.attributes, attrs_)
+					});
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Text = {$: 'Text'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$defaultOptions = {attributes: _List_Nil, disabled: false, id: $elm$core$Maybe$Nothing, onInput: $elm$core$Maybe$Nothing, placeholder: $elm$core$Maybe$Nothing, plainText: false, readonly: false, size: $elm$core$Maybe$Nothing, tipe: $rundis$elm_bootstrap$Bootstrap$Form$Input$Text, validation: $elm$core$Maybe$Nothing, value: $elm$core$Maybe$Nothing};
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $elm$html$Html$Attributes$readonly = $elm$html$Html$Attributes$boolProperty('readOnly');
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$sizeAttribute = function (size) {
+	return A2(
+		$elm$core$Maybe$map,
+		function (s) {
+			return $elm$html$Html$Attributes$class('form-control-' + s);
+		},
+		$rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption(size));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$typeAttribute = function (inputType) {
+	return $elm$html$Html$Attributes$type_(
+		function () {
+			switch (inputType.$) {
+				case 'Text':
+					return 'text';
+				case 'Password':
+					return 'password';
+				case 'DatetimeLocal':
+					return 'datetime-local';
+				case 'Date':
+					return 'date';
+				case 'Month':
+					return 'month';
+				case 'Time':
+					return 'time';
+				case 'Week':
+					return 'week';
+				case 'Number':
+					return 'number';
+				case 'Email':
+					return 'email';
+				case 'Url':
+					return 'url';
+				case 'Search':
+					return 'search';
+				case 'Tel':
+					return 'tel';
+				default:
+					return 'color';
+			}
+		}());
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString = function (validation) {
+	if (validation.$ === 'Success') {
+		return 'is-valid';
+	} else {
+		return 'is-invalid';
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$validationAttribute = function (validation) {
+	return $elm$html$Html$Attributes$class(
+		$rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString(validation));
+};
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$toAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Form$Input$applyModifier, $rundis$elm_bootstrap$Bootstrap$Form$Input$defaultOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class(
+				options.plainText ? 'form-control-plaintext' : 'form-control'),
+				$elm$html$Html$Attributes$disabled(options.disabled),
+				$elm$html$Html$Attributes$readonly(options.readonly || options.plainText),
+				$rundis$elm_bootstrap$Bootstrap$Form$Input$typeAttribute(options.tipe)
+			]),
+		_Utils_ap(
+			A2(
+				$elm$core$List$filterMap,
+				$elm$core$Basics$identity,
+				_List_fromArray(
+					[
+						A2($elm$core$Maybe$map, $elm$html$Html$Attributes$id, options.id),
+						A2($elm$core$Maybe$andThen, $rundis$elm_bootstrap$Bootstrap$Form$Input$sizeAttribute, options.size),
+						A2($elm$core$Maybe$map, $elm$html$Html$Attributes$value, options.value),
+						A2($elm$core$Maybe$map, $elm$html$Html$Attributes$placeholder, options.placeholder),
+						A2($elm$core$Maybe$map, $elm$html$Html$Events$onInput, options.onInput),
+						A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Form$Input$validationAttribute, options.validation)
+					])),
+			options.attributes));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$view = function (_v0) {
+	var options = _v0.a.options;
+	return A2(
+		$elm$html$Html$input,
+		$rundis$elm_bootstrap$Bootstrap$Form$Input$toAttributes(options),
+		_List_Nil);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$input = F2(
+	function (tipe, options) {
+		return $rundis$elm_bootstrap$Bootstrap$Form$Input$view(
+			A2($rundis$elm_bootstrap$Bootstrap$Form$Input$create, tipe, options));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$date = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Date);
+var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
+var $rundis$elm_bootstrap$Bootstrap$Form$form = F2(
+	function (attributes, children) {
+		return A2($elm$html$Html$form, attributes, children);
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$applyModifier = F2(
+	function (modifier, options) {
+		var value = modifier.a;
+		return _Utils_update(
+			options,
+			{
+				attributes: _Utils_ap(options.attributes, value)
+			});
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$defaultOptions = {attributes: _List_Nil};
+var $rundis$elm_bootstrap$Bootstrap$Form$toAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Form$applyModifier, $rundis$elm_bootstrap$Bootstrap$Form$defaultOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('form-group')
+			]),
+		options.attributes);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$group = F2(
+	function (options, children) {
+		return A2(
+			$elm$html$Html$div,
+			$rundis$elm_bootstrap$Bootstrap$Form$toAttributes(options),
+			children);
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Id = function (a) {
+	return {$: 'Id', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$id = function (id_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Id(id_);
+};
+var $elm$html$Html$label = _VirtualDom_node('label');
+var $rundis$elm_bootstrap$Bootstrap$Form$label = F2(
+	function (attributes, children) {
+		return A2(
+			$elm$html$Html$label,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('form-control-label'),
+				attributes),
+			children);
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput = function (a) {
+	return {$: 'OnInput', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$onInput = function (toMsg) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput(toMsg);
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary = {$: 'Primary'};
+var $rundis$elm_bootstrap$Bootstrap$Button$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$text = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Text);
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Value = function (a) {
+	return {$: 'Value', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$value = function (value_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Value(value_);
+};
 var $author$project$Main$projectDetailPage = F2(
 	function (model, projectId) {
 		return A2(
@@ -8588,6 +8934,22 @@ var $author$project$Main$projectDetailPage = F2(
 			_List_fromArray(
 				[
 					$author$project$Main$navbar(model),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('/#/projects')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Back')
+								]))
+						])),
 					$elm$html$Html$text('This is the project detail page, project id: ' + projectId),
 					A2(
 					$elm$html$Html$div,
@@ -8603,6 +8965,79 @@ var $author$project$Main$projectDetailPage = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$text('Some form')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Form$form,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('m-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$group,
+									_List_Nil,
+									_List_fromArray(
+										[
+											A2(
+											$rundis$elm_bootstrap$Bootstrap$Form$label,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$for('projectname')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Project Name')
+												])),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+											_List_fromArray(
+												[
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$id('projectname'),
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$InputProjectName),
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$value(model.projectState.project.name)
+												]))
+										])),
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$group,
+									_List_Nil,
+									_List_fromArray(
+										[
+											A2(
+											$rundis$elm_bootstrap$Bootstrap$Form$label,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$for('projectdate')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Project Date')
+												])),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$date(
+											_List_fromArray(
+												[
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$id('projectdate'),
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$InputProjectDate),
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+													A3($elm$core$String$slice, 0, 10, model.projectState.project.startDate))
+												]))
+										])),
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Button$button,
+									_List_fromArray(
+										[
+											$rundis$elm_bootstrap$Bootstrap$Button$primary,
+											$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$Main$SaveProject)
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Save')
+										]))
+								]))
 						]))
 				]));
 	});
@@ -8624,9 +9059,6 @@ var $rundis$elm_bootstrap$Bootstrap$Button$linkButton = F2(
 				$rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes(options)),
 			children);
 	});
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary = {$: 'Primary'};
-var $rundis$elm_bootstrap$Bootstrap$Button$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
-	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
 var $author$project$Main$projectCard = function (projectView) {
 	return A2(
 		$elm$html$Html$div,
@@ -8675,9 +9107,10 @@ var $author$project$Main$projectPage = function (model) {
 				A2($elm$core$List$map, $author$project$Main$projectCard, model.projectState.projects.projects))
 			]));
 };
-var $author$project$Main$SelectProject = function (a) {
-	return {$: 'SelectProject', a: a};
-};
+var $author$project$Main$SelectProject = F2(
+	function (a, b) {
+		return {$: 'SelectProject', a: a, b: b};
+	});
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$DropdownItem = function (a) {
 	return {$: 'DropdownItem', a: a};
 };
@@ -9108,7 +9541,7 @@ var $author$project$Main$transactionPage = function (model) {
 										_List_fromArray(
 											[
 												$elm$html$Html$Events$onClick(
-												$author$project$Main$SelectProject(project.name))
+												A2($author$project$Main$SelectProject, project.id, project.name))
 											]),
 										_List_fromArray(
 											[
@@ -9123,7 +9556,7 @@ var $author$project$Main$transactionPage = function (model) {
 									[$rundis$elm_bootstrap$Bootstrap$Button$primary]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text(model.projectState.selectedProject)
+										$elm$html$Html$text(model.transactionState.selectedProject)
 									])),
 							toggleMsg: $author$project$Main$ToggleProject
 						})
@@ -9214,8 +9647,13 @@ var $author$project$Main$main = $mthadley$elm_hash_routing$Browser$Hash$applicat
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	A2(
 		$elm$json$Json$Decode$andThen,
-		function (baseUrl) {
-			return $elm$json$Json$Decode$succeed(
-				{baseUrl: baseUrl});
+		function (currentDate) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (baseUrl) {
+					return $elm$json$Json$Decode$succeed(
+						{baseUrl: baseUrl, currentDate: currentDate});
+				},
+				A2($elm$json$Json$Decode$field, 'baseUrl', $elm$json$Json$Decode$string));
 		},
-		A2($elm$json$Json$Decode$field, 'baseUrl', $elm$json$Json$Decode$string)))(0)}});}(this));
+		A2($elm$json$Json$Decode$field, 'currentDate', $elm$json$Json$Decode$string)))(0)}});}(this));

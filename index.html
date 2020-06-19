@@ -9,16 +9,38 @@
 </head>
 <body>
   <script>
+    function getYmd(date) {
+      var year = date.getFullYear();
+      var month = date.getMonth() + 1;
+      var day = date.getDate();
+
+      var parsedYear;
+      var parsedMonth;
+      var parsedDay;
+
+      parsedYear = year.toString();
+
+      if(month < 10) {
+        parsedMonth = '0' + month.toString();
+      } else {
+        parsedMonth = month.toString();
+      }
+
+      if(day < 10) {
+        parsedDay = '0' + day.toString();
+      } else {
+        parsedDay = day.toString();
+      }
+
+      return parsedYear + '-' + parsedMonth + '-' + parsedDay;
+    }
+
     var app = Elm.Main.init({
       flags: {
-        baseUrl: 'http://localhost:8080'
+        baseUrl: 'http://localhost:8080',
+        currentDate: getYmd(new Date())
       }
     });
-
-    app.ports.resetProjectForm.subscribe(function() {
-      app.ports.resetProjectFormReceiver.send("");
-    }); 
-
   </script>
 </body>
 </html>
