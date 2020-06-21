@@ -9,13 +9,20 @@ import Html.Events exposing (..)
 import Url
 import Url.Parser as Url exposing (Parser, (</>))
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Spinner as Spinner
 import Bootstrap.Button as Button
 import Bootstrap.Dropdown as Dropdown
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
+import Bootstrap.Text as Text
+import Bootstrap.Progress as Progress
+import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Breadcrumb exposing (item)
-import Json.Decode as Decode exposing (Decoder, int, string, float, field, bool, list)
+import Json.Decode as Decode exposing (Decoder, int, string, float, field, bool, list, maybe)
+import Json.Encode as Encode
 import Http
+import FormatNumber exposing (format)
+import FormatNumber.Locales exposing (usLocale)
 
 -- MAIN
 
@@ -71,12 +78,19 @@ type alias Model =
   , navbarState : Navbar.State
   , projectState : ProjectModel
   , transactionState : TransactionModel
+  , itemState : ItemModel
   }
 
 type alias ProjectModel =
   { requestStatus : RequestStatus
   , project : Project
   , projects : ProjectsView
+  }
+
+type alias ItemModel =
+  { item : Item
+  , itemStockViews : List ItemStockView
+  , searchInput : String
   }
 
 type alias TransactionModel =
@@ -143,6 +157,17 @@ projectDecoder =
     (field "updated_at" string)
     (field "created_at" string)
 
+projectEncoder project =
+  Encode.object
+    [ ("id", Encode.int project.id)
+    , ("uid", Encode.string project.uid)
+    , ("name", Encode.string project.name)
+    , ("startDate", Encode.string project.startDate)
+    -- , ("updatedAt", Encode.string project.updatedAt)
+    -- , ("createdAt", Encode.string project.createdAt)
+    ]
+
+
 type alias Item =
   { id : Int
   , uid : String
@@ -152,6 +177,18 @@ type alias Item =
   , manufacturingPrice : Int
   , updatedAt: String
   , createdAt: String
+  }
+
+initialItem : Item
+initialItem =
+  { id = 0
+  , uid = ""
+  , name = ""
+  , description = ""
+  , price = 0
+  , manufacturingPrice = 0
+  , createdAt = ""
+  , updatedAt = ""
   }
 
 itemDecoder =
@@ -290,18 +327,18 @@ projectsViewDecoder =
     (field "totalIncome" int)
 
 type alias ProjectTransactionsView =
-  { project : Project
+  { project : Maybe Project
   , transactions : List TransactionView
   }
 
 projectTransactionsViewDecoder =
   Decode.map2 ProjectTransactionsView
-    (field "project" projectDecoder)
+    (field "project" (maybe projectDecoder))
     (field "transactions" (Decode.list transactionViewDecoder))
 
 initialProjectTransationsView : ProjectTransactionsView
 initialProjectTransationsView =
-  { project = initialProject
+  { project = Nothing
   , transactions = []
   }
 
@@ -328,13 +365,19 @@ itemTransactionViewDecoder =
     (field "item" itemDecoder)
 
 type alias ItemStockView =
-  { item : Item
+  { item : Maybe Item
   , inStock : Int
+  }
+
+initialItemStockView : ItemStockView
+initialItemStockView =
+  { item = Nothing
+  , inStock = 0
   }
 
 itemStockViewDecoder =
   Decode.map2 ItemStockView
-    (field "item" itemDecoder)
+    (field "item" (maybe itemDecoder))
     (field "inStock" int)
 
 init : Flag -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -355,6 +398,13 @@ init flag url key =
       , totalIncome = 0
       }
 
+    initialItemModel : ItemModel
+    initialItemModel =
+      { item = initialItem
+      , itemStockViews = []
+      , searchInput = ""
+      }
+
     initialModel : Model 
     initialModel =
       { key = key
@@ -365,12 +415,20 @@ init flag url key =
       , navbarState = navbarState
       , projectState = initialProjectModel
       , transactionState = initialTransactionModel
+      , itemState = initialItemModel
       }
   in
   
   ( initialModel
   , Cmd.batch 
-      [ navbarCmd ] 
+      [ navbarCmd
+      , sendRequest
+          initialModel.baseUrl
+          "GET"
+          "/projects"
+          Http.emptyBody
+          (Http.expectJson GotProjects (Decode.list projectDecoder))
+      ] 
   )
 
 
@@ -385,15 +443,20 @@ type Msg
   | Login
   | Logout
   | ToggleProject Dropdown.State
-  | SelectProject Int String
+  | SelectProject Project
   | GotProject (Result Http.Error (Project))
   | GotProjects (Result Http.Error (List Project))
   | GotProjectsView (Result Http.Error ProjectsView)
-  | GotItems (Result Http.Error (List Item))
+  | GotItems (Result Http.Error (List ItemStockView))
   -- Project
   | InputProjectName String
   | InputProjectDate String
   | SaveProject
+  | SavedProject (Result Http.Error String)
+  -- Transaction
+  | GotProjectTransaction (Result Http.Error ProjectTransactionsView)
+  -- Item
+  | InputSearchItem String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -407,16 +470,16 @@ update msg model =
           ( model, Nav.load href )
 
     UrlChanged url ->
-      fetchByUrl 
-        model
-        url 
-        model.loggedIn
+      let
+        newModel = ( { model | url = url } )
+      in
+      fetchByUrl newModel
 
     Login ->
-      fetchByUrl 
-        model
-        model.url
-        True
+      let
+        newModel = ( { model | loggedIn = True } )
+      in
+      fetchByUrl newModel
 
     Logout ->
       ( { model | loggedIn = False }, Cmd.none )
@@ -431,12 +494,27 @@ update msg model =
       in
       ( { model | transactionState = newTransactionState }, Cmd.none )
     
-    SelectProject projectId projectName ->
+    SelectProject project ->
       let
         transactionState = model.transactionState
-        newTransactionState = { transactionState | requestStatus = Loading, selectedProject = projectName }
+        projectTransactionsView = transactionState.projectTransactionsView
+
+        newProjectTransactionsView = { projectTransactionsView | project = Just project }
+        newTransactionState = 
+          { transactionState  
+          | requestStatus = Loading
+          , selectedProject = project.name
+          , projectTransactionsView = newProjectTransactionsView
+          }
       in
-        ( { model | transactionState = newTransactionState }, Cmd.none )
+        ( { model | transactionState = newTransactionState }
+        , sendRequest
+            model.baseUrl
+            "GET"
+            ("/projects/" ++ String.fromInt project.id ++ "/transactions")
+            Http.emptyBody
+            (Http.expectJson GotProjectTransaction projectTransactionsViewDecoder)
+        )
 
     GotProjects res ->
       case res of
@@ -479,8 +557,12 @@ update msg model =
 
     GotItems res ->
       case res of
-        Ok item ->
-          ( model, Cmd.none )
+        Ok itemStockViews ->
+          let
+            itemState = model.itemState
+            newItemState = { itemState | itemStockViews = itemStockViews }
+          in
+          ( { model | itemState = newItemState }, Cmd.none )
         
         Err _ ->
           ( model, Cmd.none )
@@ -509,10 +591,49 @@ update msg model =
       let
         project = model.projectState.project
         startDate = if project.startDate == "" then model.currentDate else project.startDate
-        parsedProject = { project | startDate = startDate }
+        parsedProject = { project | startDate = String.slice 0 10 startDate }
       in
       (Debug.log <| Debug.toString parsedProject)
-      ( model, Cmd.none )
+      ( model
+      , sendRequest
+          model.baseUrl
+          "POST"
+          "/projects"
+          (Http.jsonBody (projectEncoder <| parsedProject))
+          (Http.expectString SavedProject) 
+      )
+
+    SavedProject res ->
+      case res of
+        Ok str ->
+          ( model, Nav.pushUrl model.key "/#/projects" )
+
+        Err e ->
+          ( model, Cmd.none )
+
+    GotProjectTransaction res ->
+      let
+        transactionState = model.transactionState
+      in
+      case res of
+        Ok projectTransactionsView ->
+          let
+            newTransactionState = { transactionState | requestStatus = Success, projectTransactionsView = projectTransactionsView }
+          in
+          ( { model | transactionState = newTransactionState}, Cmd.none )
+        
+        Err _ ->
+          let
+            newTransactionState = { transactionState | requestStatus = Error }
+          in
+          ( { model | transactionState = newTransactionState}, Cmd.none )
+
+    InputSearchItem searchInput ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | searchInput = searchInput }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
 
 -- SUBSCRIPTIONS
 
@@ -547,7 +668,7 @@ view model =
             Tuple.pair "Items" (itemPage model)
 
           ItemDetail itemId ->
-            Tuple.pair "Item Detail" (itemPage model)
+            Tuple.pair "Item Detail" (itemDetailPage model)
 
           TransactionPage ->
             Tuple.pair "Transactiosns" (transactionPage model)
@@ -599,8 +720,19 @@ navbar model =
     |> Navbar.view model.navbarState
 
 
+transactionPage : Model -> Html Msg
 transactionPage model =
-  div [ ]
+  let
+    addButton =
+      case model.transactionState.projectTransactionsView.project of
+        Just _ ->
+          a [ href <| "/#/transactions/new" ]
+            [ Button.button [ Button.primary ] [ text "Add" ] ]
+      
+        _ ->
+          div [] []
+  in
+  div []
     [ navbar model
     , div [ class "m-2" ]
         [ Dropdown.dropdown
@@ -610,24 +742,112 @@ transactionPage model =
               , toggleButton =
                   Dropdown.toggle [ Button.primary ] [ text model.transactionState.selectedProject ]
               , items =
-                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project.id project.name) ] [ text project.name ] ) model.transactionState.projects  
-                  -- [ Dropdown.buttonItem [ onClick <| SelectProject "test project 1" ] [ text "Test project 1" ]
-                  -- , Dropdown.buttonItem [ onClick <| SelectProject "test projext 2" ] [ text "Test project 2" ]
-                  -- ]
+                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project) ] [ text project.name ] ) model.transactionState.projects
               }
         ]
     , div [] 
         [ if model.transactionState.requestStatus == Loading then
-            text "Loading......."
+            Spinner.spinner [ Spinner.grow ] []
           else  
-            text <| Debug.toString model.transactionState.projects ]
+            -- text <| Debug.toString model.transactionState.projects 
+            text "Load complete"
         ]
+    , div [] [ Spinner.spinner [] [] ]
+    , div [] [ addButton ]
+    , div []
+        [ let
+            projectTransactionsView = model.transactionState.projectTransactionsView
+          in
+          case projectTransactionsView.project of
+            Just project ->
+              div []
+                [ h3 [] [ text project.name ]
+                , ListGroup.ul (List.map transactionCard projectTransactionsView.transactions )
+                ]
+
+            Nothing ->
+              div [ style "background-color" "lightblue", class "my-3" ] [text "No projects to show."]
+        ]
+    ]
+
+transactionCard : TransactionView -> ListGroup.Item msg
+transactionCard transactionView =
+  ListGroup.li []
+    [ div [] 
+      [ div [] [ text <| ("ID no." ++ String.fromInt transactionView.transaction.id) ]
+      , div [ class "d-flex justify-content-between align-items-center" ] 
+          [ h4 [] 
+              [ text <|
+                  "Rp" ++ format usLocale
+                    ( if transactionView.transaction.priceIsCustom then 
+                        toFloat transactionView.transaction.customPrice
+                    else 
+                        toFloat transactionView.totalPrice 
+                    )
+              ] 
+          , text transactionView.transaction.cashier
+          ]
+      , div []
+          [ text <| "Orig: Rp" ++ format usLocale (toFloat transactionView.totalPrice) ]
+      ] 
+    ]
 
 itemPage model =
+  let
+    filterItemStockView itemStockView =
+      case itemStockView.item of
+        Just item ->
+          String.contains model.itemState.searchInput (String.toLower item.name)
+
+        Nothing ->
+          False 
+
+    filteredItems = List.filter filterItemStockView model.itemState.itemStockViews
+  in
   div [] 
     [ navbar model
-    , text "This is the item page" 
+    , div [] [ text "This is the item page"]
+    , div []
+        [ a [ href "/#/items/add" ]  
+            [ Button.button [ Button.primary ] [ text "Add" ] ]
+        ]
+    , div [ class "my-2" ] 
+        [ Input.text [ Input.placeholder "Search item...", Input.onInput InputSearchItem ] ]        
+    , div []
+        [ ListGroup.ul (List.map itemCard filteredItems) ]
     ]
+
+itemCard itemStockView =
+  let
+    item =
+      case itemStockView.item of
+        Just unwrappedItem ->
+          unwrappedItem
+
+        Nothing ->
+          initialItem
+  in
+  ListGroup.li [] 
+    [ div []
+        [ a 
+          [ href ("/#/items/" ++ String.fromInt item.id) ] 
+          [ h5 [] [ text <| item.name ] ]
+        , div [] [ h5 [] [ text <| "Rp" ++ format usLocale (toFloat item.price)] ]
+        , div [] [ text <| "Manuf.price: Rp" ++ format usLocale (toFloat item.manufacturingPrice) ]
+        , div [] [ text item.description ]
+        , div [] [ text "In stock: ", span [] [ b [] [ text <| String.fromInt itemStockView.inStock ] ] ]
+        ] 
+    ]
+
+itemDetailPage model =
+  div [] 
+      [ navbar model
+      , div [] [ text "This is the item detail page"] 
+      , div []
+          [ a [ href "/#/items" ]  
+              [ Button.button [] [ text "Back" ] ]
+          ]
+      ]
 
 projectPage model =
   div [] 
@@ -693,22 +913,19 @@ sendRequest baseUrl method target body expect =
     , tracker = Nothing
     }
 
-fetchByUrl model url loginState =
+fetchByUrl model =
   let
-    page = Maybe.withDefault Index <| Url.parse urlParser <| url
-    newModel = { model | loggedIn = loginState, url = url }
+    page = Maybe.withDefault Index <| Url.parse urlParser <| model.url
   in
   case page of
     ProjectPage ->
-      ( newModel 
-      , Cmd.batch 
-          [ sendRequest 
-              model.baseUrl 
-              "GET" 
-              "/projectsview" 
-              Http.emptyBody 
-              (Http.expectJson GotProjectsView projectsViewDecoder)
-          ] 
+      ( model 
+      , sendRequest 
+          model.baseUrl 
+          "GET" 
+          "/projectsview" 
+          Http.emptyBody 
+          (Http.expectJson GotProjectsView projectsViewDecoder) 
       )
 
     ProjectDetail projectId ->
@@ -717,7 +934,7 @@ fetchByUrl model url loginState =
       in
         case projectIdInt of
             Just id ->
-              ( newModel
+              ( model 
               , sendRequest 
                   model.baseUrl
                   "GET" 
@@ -731,13 +948,13 @@ fetchByUrl model url loginState =
                 projectState = model.projectState
               
                 newProjectState = { projectState | project = initialProject }
-                newModelResetProject = { newModel | projectState = newProjectState }
               in
-              ( newModelResetProject
+              ( { model | projectState = newProjectState }
               , Cmd.none
               )
-    TransactionPage ->
-      ( { newModel | transactionState = initialTransactionModel }
+
+    Index ->
+      ( { model | transactionState = initialTransactionModel }
       , sendRequest
           model.baseUrl
           "GET"
@@ -745,16 +962,26 @@ fetchByUrl model url loginState =
           Http.emptyBody
           (Http.expectJson GotProjects (Decode.list projectDecoder)) 
       )
+      
+    -- TransactionPage ->
+    --   ( { model | transactionState = initialTransactionModel }
+    --   , sendRequest
+    --       model.baseUrl
+    --       "GET"
+    --       "/projects"
+    --       Http.emptyBody
+    --       (Http.expectJson GotProjects (Decode.list projectDecoder)) 
+    --   )
 
     ItemPage ->
-      ( newModel
+      ( model
       , sendRequest
           model.baseUrl
           "GET"
-          "/items"
+          "/itemstocks"
           Http.emptyBody
-          (Http.expectJson GotItems (Decode.list itemDecoder)) 
+          (Http.expectJson GotItems (Decode.list itemStockViewDecoder)) 
       )
 
     _ ->
-      ( newModel, Cmd.none )
+      ( model, Cmd.none )
