@@ -10389,39 +10389,40 @@ var $author$project$Main$projectPage = function (model) {
 var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary = {$: 'Secondary'};
 var $rundis$elm_bootstrap$Bootstrap$Button$secondary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
 	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary));
-var $author$project$Main$transactionDetail = function (model) {
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$author$project$Main$navbar(model),
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href('/#/transactions')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Button$button,
-						_List_fromArray(
-							[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Back')
-							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Transaction Detail page')
-					]))
-			]));
-};
+var $author$project$Main$transactionDetail = F2(
+	function (model, transactionId) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$author$project$Main$navbar(model),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href('/#/transactions')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Button$button,
+							_List_fromArray(
+								[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Back')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Transaction Detail page')
+						]))
+				]));
+	});
 var $author$project$Main$SelectProject = function (a) {
 	return {$: 'SelectProject', a: a};
 };
@@ -11085,14 +11086,17 @@ var $author$project$Main$view = function (model) {
 					var transactionId = page.a;
 					return _Utils_Tuple2(
 						'Transaction Detail',
-						$author$project$Main$transactionDetail(model));
+						A2($author$project$Main$transactionDetail, model, transactionId));
 			}
 		}
 	}();
+	var _v0 = currentPage;
+	var title = _v0.a;
+	var body = _v0.b;
 	return {
 		body: _List_fromArray(
 			[
-				currentPage.b,
+				body,
 				$elm$html$Html$text('The current URL is: '),
 				A2(
 				$elm$html$Html$b,
@@ -11103,7 +11107,7 @@ var $author$project$Main$view = function (model) {
 						$elm$url$Url$toString(model.url))
 					]))
 			]),
-		title: 'Cozy PoS | ' + currentPage.a
+		title: 'Cozy PoS | ' + title
 	};
 };
 var $author$project$Main$main = $mthadley$elm_hash_routing$Browser$Hash$application(

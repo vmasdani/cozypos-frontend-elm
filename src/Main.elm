@@ -666,34 +666,35 @@ view model =
     page = Maybe.withDefault Index <| Url.parse urlParser <| model.url
     currentPage =
       if not model.loggedIn then
-        ("Login", (loginPage model))
+        ("Login", loginPage model)
       else
         case page of
           Index ->
-            ("Index", (transactionPage model))
+            ("Index", transactionPage model)
 
           ProjectPage ->
-            ("Projects", (projectPage model))
+            ("Projects", projectPage model)
 
           ProjectDetail projectId ->
-            ("Project Detail", (projectDetailPage model projectId))
+            ("Project Detail", projectDetailPage model projectId)
 
           ItemPage ->
-            ("Items", (itemPage model))
+            ("Items", itemPage model)
 
           ItemDetail itemId ->
-            ("Item Detail", (itemDetailPage model itemId))
+            ("Item Detail", itemDetailPage model itemId)
 
           TransactionPage ->
-            ("Transactions", (transactionPage model))
+            ("Transactions", transactionPage model)
 
           TransactionDetail transactionId ->
-            ("Transaction Detail", (transactionDetail model))
-            
+            ("Transaction Detail", transactionDetail model transactionId)
+
+    (title, body) = currentPage 
   in
-  { title = ("Cozy PoS | " ++ Tuple.first currentPage)
+  { title = "Cozy PoS | " ++ title
   , body =
-      [ Tuple.second currentPage
+      [ body
       , text "The current URL is: "
       , b [] [ text (Url.toString model.url) ]
       ]
@@ -818,8 +819,8 @@ transactionCard transactionView =
       ] 
     ]
 
-transactionDetail : Model -> Html Msg
-transactionDetail model =
+transactionDetail : Model -> String -> Html Msg
+transactionDetail model transactionId =
   div [] 
     [ navbar model
     , a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ] 
