@@ -6322,7 +6322,7 @@ var $author$project$Main$init = F3(
 	function (flag, url, key) {
 		var initialProjectsView = {projects: _List_Nil, totalIncome: 0};
 		var initialProjectModel = {project: $author$project$Main$initialProject, projects: initialProjectsView, requestStatus: $author$project$Main$NotAsked};
-		var initialItemModel = {item: $author$project$Main$initialItem, itemStockViews: _List_Nil, searchInput: ''};
+		var initialItemModel = {item: $author$project$Main$initialItem, itemStockViews: _List_Nil, requestStatus: $author$project$Main$NotAsked, searchInput: ''};
 		var _v0 = $rundis$elm_bootstrap$Bootstrap$Navbar$initialState($author$project$Main$NavbarMsg);
 		var navbarState = _v0.a;
 		var navbarCmd = _v0.b;
@@ -6774,11 +6774,170 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions = F2(
 				return $elm$core$Platform$Sub$none;
 		}
 	});
+var $rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingDown = {$: 'AnimatingDown'};
+var $rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingUp = {$: 'AnimatingUp'};
+var $rundis$elm_bootstrap$Bootstrap$Navbar$Closed = {$: 'Closed'};
+var $rundis$elm_bootstrap$Bootstrap$Navbar$ListenClicks = {$: 'ListenClicks'};
+var $rundis$elm_bootstrap$Bootstrap$Navbar$Open = {$: 'Open'};
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$Dict$map = F2(
+	function (func, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		} else {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				key,
+				A2(func, key, value),
+				A2($elm$core$Dict$map, func, left),
+				A2($elm$core$Dict$map, func, right));
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Navbar$dropdownSubscriptions = F2(
+	function (state, toMsg) {
+		var dropdowns = state.a.dropdowns;
+		var updDropdowns = A2(
+			$elm$core$Dict$map,
+			F2(
+				function (_v2, status) {
+					switch (status.$) {
+						case 'Open':
+							return $rundis$elm_bootstrap$Bootstrap$Navbar$ListenClicks;
+						case 'ListenClicks':
+							return $rundis$elm_bootstrap$Bootstrap$Navbar$Closed;
+						default:
+							return $rundis$elm_bootstrap$Bootstrap$Navbar$Closed;
+					}
+				}),
+			dropdowns);
+		var updState = A2(
+			$rundis$elm_bootstrap$Bootstrap$Navbar$mapState,
+			function (s) {
+				return _Utils_update(
+					s,
+					{dropdowns: updDropdowns});
+			},
+			state);
+		var needsSub = function (s) {
+			return A2(
+				$elm$core$List$any,
+				function (_v1) {
+					var status = _v1.b;
+					return _Utils_eq(status, s);
+				},
+				$elm$core$Dict$toList(dropdowns));
+		};
+		return $elm$core$Platform$Sub$batch(
+			_List_fromArray(
+				[
+					needsSub($rundis$elm_bootstrap$Bootstrap$Navbar$Open) ? $elm$browser$Browser$Events$onAnimationFrame(
+					function (_v0) {
+						return toMsg(updState);
+					}) : $elm$core$Platform$Sub$none,
+					needsSub($rundis$elm_bootstrap$Bootstrap$Navbar$ListenClicks) ? $elm$browser$Browser$Events$onClick(
+					$elm$json$Json$Decode$succeed(
+						toMsg(updState))) : $elm$core$Platform$Sub$none
+				]));
+	});
+var $elm$browser$Browser$Events$Window = {$: 'Window'};
+var $elm$browser$Browser$Events$onResize = function (func) {
+	return A3(
+		$elm$browser$Browser$Events$on,
+		$elm$browser$Browser$Events$Window,
+		'resize',
+		A2(
+			$elm$json$Json$Decode$field,
+			'target',
+			A3(
+				$elm$json$Json$Decode$map2,
+				func,
+				A2($elm$json$Json$Decode$field, 'innerWidth', $elm$json$Json$Decode$int),
+				A2($elm$json$Json$Decode$field, 'innerHeight', $elm$json$Json$Decode$int))));
+};
+var $rundis$elm_bootstrap$Bootstrap$Navbar$subscriptions = F2(
+	function (state, toMsg) {
+		var visibility = state.a.visibility;
+		var updState = function (v) {
+			return A2(
+				$rundis$elm_bootstrap$Bootstrap$Navbar$mapState,
+				function (s) {
+					return _Utils_update(
+						s,
+						{visibility: v});
+				},
+				state);
+		};
+		return $elm$core$Platform$Sub$batch(
+			_List_fromArray(
+				[
+					function () {
+					switch (visibility.$) {
+						case 'StartDown':
+							return $elm$browser$Browser$Events$onAnimationFrame(
+								function (_v1) {
+									return toMsg(
+										updState($rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingDown));
+								});
+						case 'StartUp':
+							return $elm$browser$Browser$Events$onAnimationFrame(
+								function (_v2) {
+									return toMsg(
+										updState($rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingUp));
+								});
+						default:
+							return $elm$core$Platform$Sub$none;
+					}
+				}(),
+					$elm$browser$Browser$Events$onResize(
+					F2(
+						function (x, _v3) {
+							return toMsg(
+								A2(
+									$rundis$elm_bootstrap$Bootstrap$Navbar$mapState,
+									function (s) {
+										return _Utils_update(
+											s,
+											{
+												windowWidth: $elm$core$Maybe$Just(x)
+											});
+									},
+									state));
+						})),
+					A2($rundis$elm_bootstrap$Bootstrap$Navbar$dropdownSubscriptions, state, toMsg)
+				]));
+	});
 var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				A2($rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions, model.transactionState.projectsDropdown, $author$project$Main$ToggleProject)
+				A2($rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions, model.transactionState.projectsDropdown, $author$project$Main$ToggleProject),
+				A2($rundis$elm_bootstrap$Bootstrap$Navbar$subscriptions, model.navbarState, $author$project$Main$NavbarMsg)
 			]));
 };
 var $author$project$Main$Error = {$: 'Error'};
@@ -7233,8 +7392,14 @@ var $author$project$Main$fetchByUrl = function (model) {
 						$author$project$Main$GotProjects,
 						$elm$json$Json$Decode$list($author$project$Main$projectDecoder))));
 		case 'ItemPage':
+			var itemState = model.itemState;
+			var newItemState = _Utils_update(
+				itemState,
+				{requestStatus: $author$project$Main$Loading});
 			return _Utils_Tuple2(
-				model,
+				_Utils_update(
+					model,
+					{itemState: newItemState}),
 				A5(
 					$author$project$Main$sendRequest,
 					model.baseUrl,
@@ -7425,15 +7590,15 @@ var $author$project$Main$update = F2(
 				}
 			case 'UrlChanged':
 				var url = msg.a;
-				var newModel = _Utils_update(
-					model,
-					{url: url});
-				return $author$project$Main$fetchByUrl(newModel);
+				return $author$project$Main$fetchByUrl(
+					_Utils_update(
+						model,
+						{url: url}));
 			case 'Login':
-				var newModel = _Utils_update(
-					model,
-					{loggedIn: true});
-				return $author$project$Main$fetchByUrl(newModel);
+				return $author$project$Main$fetchByUrl(
+					_Utils_update(
+						model,
+						{loggedIn: true}));
 			case 'Logout':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -7543,14 +7708,22 @@ var $author$project$Main$update = F2(
 					var itemState = model.itemState;
 					var newItemState = _Utils_update(
 						itemState,
-						{itemStockViews: itemStockViews});
+						{itemStockViews: itemStockViews, requestStatus: $author$project$Main$Success});
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{itemState: newItemState}),
 						$elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var itemState = model.itemState;
+					var newItemState = _Utils_update(
+						itemState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{itemState: newItemState}),
+						$elm$core$Platform$Cmd$none);
 				}
 			case 'InputProjectName':
 				var name = msg.a;
@@ -8085,8 +8258,6 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$shouldHideMenu = F2(
 	});
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingDown = {$: 'AnimatingDown'};
-var $rundis$elm_bootstrap$Bootstrap$Navbar$AnimatingUp = {$: 'AnimatingUp'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$Shown = {$: 'Shown'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$StartDown = {$: 'StartDown'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$StartUp = {$: 'StartUp'};
@@ -8451,7 +8622,6 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$renderCustom = function (items_) {
 		},
 		items_);
 };
-var $rundis$elm_bootstrap$Bootstrap$Navbar$Closed = {$: 'Closed'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$getOrInitDropdownStatus = F2(
 	function (id, _v0) {
 		var dropdowns = _v0.a.dropdowns;
@@ -8472,7 +8642,6 @@ var $elm$html$Html$Events$custom = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$Custom(decoder));
 	});
-var $rundis$elm_bootstrap$Bootstrap$Navbar$Open = {$: 'Open'};
 var $rundis$elm_bootstrap$Bootstrap$Navbar$toggleOpen = F3(
 	function (state, id, _v0) {
 		var toMsg = _v0.toMsg;
@@ -8863,46 +9032,53 @@ var $author$project$Main$navbar = function (model) {
 						$rundis$elm_bootstrap$Bootstrap$Navbar$withAnimation(
 							$rundis$elm_bootstrap$Bootstrap$Navbar$config($author$project$Main$NavbarMsg)))))));
 };
-var $author$project$Main$itemDetailPage = function (model) {
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$author$project$Main$navbar(model),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('This is the item detail page')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$a,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$href('/#/items')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Button$button,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Back')
-									]))
-							]))
-					]))
-			]));
-};
+var $author$project$Main$itemDetailPage = F2(
+	function (model, itemId) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$author$project$Main$navbar(model),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('This is the item detail page')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('/#/items')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Button$button,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Back')
+										]))
+								]))
+						]))
+				]));
+	});
 var $author$project$Main$InputSearchItem = function (a) {
 	return {$: 'InputSearchItem', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Attrs = function (a) {
+	return {$: 'Attrs', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$attrs = function (attrs_) {
+	return $rundis$elm_bootstrap$Bootstrap$Spinner$Attrs(attrs_);
 };
 var $cuducos$elm_format_number$FormatNumber$Parser$FormattedNumber = F5(
 	function (original, integers, decimals, prefix, suffix) {
@@ -8998,27 +9174,6 @@ var $elm$core$List$head = function (list) {
 	}
 };
 var $elm$core$Basics$ge = _Utils_ge;
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
-		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
-				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
-				}
-			}
-		}
-	});
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
@@ -9477,6 +9632,112 @@ var $rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder = function (value_) {
 var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary = {$: 'Primary'};
 var $rundis$elm_bootstrap$Bootstrap$Button$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
 	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
+var $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier = F2(
+	function (modifier, options) {
+		switch (modifier.$) {
+			case 'Kind':
+				var spinnerKind = modifier.a;
+				return _Utils_update(
+					options,
+					{kind: spinnerKind});
+			case 'Size':
+				var spinnerSize = modifier.a;
+				return _Utils_update(
+					options,
+					{size: spinnerSize});
+			case 'Color':
+				var color_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						color: $elm$core$Maybe$Just(color_)
+					});
+			default:
+				var list = modifier.a;
+				return _Utils_update(
+					options,
+					{attributes: list});
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Border = {$: 'Border'};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Normal = {$: 'Normal'};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions = {attributes: _List_Nil, color: $elm$core$Maybe$Nothing, kind: $rundis$elm_bootstrap$Bootstrap$Spinner$Border, size: $rundis$elm_bootstrap$Bootstrap$Spinner$Normal};
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName = function (kind_) {
+	if (kind_.$ === 'Border') {
+		return 'spinner-border';
+	} else {
+		return 'spinner-grow';
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClass = A2($elm$core$Basics$composeL, $elm$html$Html$Attributes$class, $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName);
+var $rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes = F2(
+	function (size_, kind_) {
+		switch (size_.$) {
+			case 'Normal':
+				return $elm$core$Maybe$Nothing;
+			case 'Small':
+				return $elm$core$Maybe$Just(
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class(
+							$rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName(kind_) + '-sm')
+						]));
+			default:
+				return $elm$core$Maybe$Just(
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'width', '3rem'),
+							A2($elm$html$Html$Attributes$style, 'height', '3rem')
+						]));
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass = function (color) {
+	if (color.$ === 'White') {
+		return $elm$html$Html$Attributes$class('text-white');
+	} else {
+		var role = color.a;
+		return A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'text', role);
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes = function (options) {
+	return _Utils_ap(
+		A2(
+			$elm$core$List$filterMap,
+			$elm$core$Basics$identity,
+			_List_fromArray(
+				[
+					$elm$core$Maybe$Just(
+					$rundis$elm_bootstrap$Bootstrap$Spinner$kindClass(options.kind)),
+					A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass, options.color)
+				])),
+		_Utils_ap(
+			A2(
+				$elm$core$Maybe$withDefault,
+				_List_Nil,
+				A2($rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes, options.size, options.kind)),
+			_Utils_ap(
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$attribute, 'role', 'status')
+					]),
+				options.attributes)));
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$spinner = F2(
+	function (options, children) {
+		var opts = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier, $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions, options);
+		return A2(
+			$elm$html$Html$div,
+			$rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes(opts),
+			children);
+	});
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$Text = {$: 'Text'};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$Input = function (a) {
 	return {$: 'Input', a: a};
@@ -9802,7 +10063,7 @@ var $author$project$Main$itemPage = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('This is the item page')
+						$elm$html$Html$text('Item page here')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -9825,7 +10086,18 @@ var $author$project$Main$itemPage = function (model) {
 									[
 										$elm$html$Html$text('Add')
 									]))
-							]))
+							])),
+						_Utils_eq(model.itemState.requestStatus, $author$project$Main$Loading) ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Spinner$spinner,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Spinner$attrs(
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mx-2')
+									]))
+							]),
+						_List_Nil) : $elm$html$Html$text('Load complete')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10060,14 +10332,6 @@ var $author$project$Main$projectDetailPage = F2(
 						]))
 				]));
 	});
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $rundis$elm_bootstrap$Bootstrap$Button$linkButton = F2(
 	function (options, children) {
 		return A2(
@@ -10124,6 +10388,42 @@ var $author$project$Main$projectPage = function (model) {
 				$elm$html$Html$div,
 				_List_Nil,
 				A2($elm$core$List$map, $author$project$Main$projectCard, model.projectState.projects.projects))
+			]));
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary = {$: 'Secondary'};
+var $rundis$elm_bootstrap$Bootstrap$Button$secondary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary));
+var $author$project$Main$transactionDetail = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$author$project$Main$navbar(model),
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('/#/transactions')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Button$button,
+						_List_fromArray(
+							[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Back')
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Transaction Detail page')
+					]))
 			]));
 };
 var $author$project$Main$SelectProject = function (a) {
@@ -10352,110 +10652,7 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$dropdown = F2(
 					A3($rundis$elm_bootstrap$Bootstrap$Dropdown$dropdownMenu, state, config, items)
 				]));
 	});
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Growing = {$: 'Growing'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Kind = function (a) {
-	return {$: 'Kind', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$grow = $rundis$elm_bootstrap$Bootstrap$Spinner$Kind($rundis$elm_bootstrap$Bootstrap$Spinner$Growing);
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier = F2(
-	function (modifier, options) {
-		switch (modifier.$) {
-			case 'Kind':
-				var spinnerKind = modifier.a;
-				return _Utils_update(
-					options,
-					{kind: spinnerKind});
-			case 'Size':
-				var spinnerSize = modifier.a;
-				return _Utils_update(
-					options,
-					{size: spinnerSize});
-			case 'Color':
-				var color_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						color: $elm$core$Maybe$Just(color_)
-					});
-			default:
-				var list = modifier.a;
-				return _Utils_update(
-					options,
-					{attributes: list});
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Border = {$: 'Border'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Normal = {$: 'Normal'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions = {attributes: _List_Nil, color: $elm$core$Maybe$Nothing, kind: $rundis$elm_bootstrap$Bootstrap$Spinner$Border, size: $rundis$elm_bootstrap$Bootstrap$Spinner$Normal};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName = function (kind_) {
-	if (kind_.$ === 'Border') {
-		return 'spinner-border';
-	} else {
-		return 'spinner-grow';
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClass = A2($elm$core$Basics$composeL, $elm$html$Html$Attributes$class, $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName);
-var $rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes = F2(
-	function (size_, kind_) {
-		switch (size_.$) {
-			case 'Normal':
-				return $elm$core$Maybe$Nothing;
-			case 'Small':
-				return $elm$core$Maybe$Just(
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class(
-							$rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName(kind_) + '-sm')
-						]));
-			default:
-				return $elm$core$Maybe$Just(
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'width', '3rem'),
-							A2($elm$html$Html$Attributes$style, 'height', '3rem')
-						]));
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass = function (color) {
-	if (color.$ === 'White') {
-		return $elm$html$Html$Attributes$class('text-white');
-	} else {
-		var role = color.a;
-		return A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'text', role);
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes = function (options) {
-	return _Utils_ap(
-		A2(
-			$elm$core$List$filterMap,
-			$elm$core$Basics$identity,
-			_List_fromArray(
-				[
-					$elm$core$Maybe$Just(
-					$rundis$elm_bootstrap$Bootstrap$Spinner$kindClass(options.kind)),
-					A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass, options.color)
-				])),
-		_Utils_ap(
-			A2(
-				$elm$core$Maybe$withDefault,
-				_List_Nil,
-				A2($rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes, options.size, options.kind)),
-			_Utils_ap(
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$attribute, 'role', 'status')
-					]),
-				options.attributes)));
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$spinner = F2(
-	function (options, children) {
-		var opts = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier, $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions, options);
-		return A2(
-			$elm$html$Html$div,
-			$rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes(opts),
-			children);
-	});
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$DropdownToggle = function (a) {
 	return {$: 'DropdownToggle', a: a};
 };
@@ -10634,6 +10831,13 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$toggle = F2(
 			A2($rundis$elm_bootstrap$Bootstrap$Dropdown$togglePrivate, buttonOptions, children));
 	});
 var $elm$html$Html$h4 = _VirtualDom_node('h4');
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Info = {$: 'Info'};
+var $rundis$elm_bootstrap$Bootstrap$Button$info = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Info));
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Size = function (a) {
+	return {$: 'Size', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Button$small = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Size($rundis$elm_bootstrap$Bootstrap$General$Internal$SM);
 var $author$project$Main$transactionCard = function (transactionView) {
 	return A2(
 		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
@@ -10647,11 +10851,40 @@ var $author$project$Main$transactionCard = function (transactionView) {
 					[
 						A2(
 						$elm$html$Html$div,
-						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('d-flex justify-content-between')
+							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								'ID no.' + $elm$core$String$fromInt(transactionView.transaction.id))
+								'ID no.' + $elm$core$String$fromInt(transactionView.transaction.id)),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href(
+										'/#/transactions/' + $elm$core$String$fromInt(transactionView.transaction.id))
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Button$button,
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Button$info,
+												$rundis$elm_bootstrap$Bootstrap$Button$small,
+												$rundis$elm_bootstrap$Bootstrap$Button$attrs(
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('mx-2')
+													]))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Details')
+											]))
+									]))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -10761,18 +10994,7 @@ var $author$project$Main$transactionPage = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						_Utils_eq(model.transactionState.requestStatus, $author$project$Main$Loading) ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Spinner$spinner,
-						_List_fromArray(
-							[$rundis$elm_bootstrap$Bootstrap$Spinner$grow]),
-						_List_Nil) : $elm$html$Html$text('Load complete')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil)
+						_Utils_eq(model.transactionState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : $elm$html$Html$text('Load complete')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10860,18 +11082,18 @@ var $author$project$Main$view = function (model) {
 					return A2(
 						$elm$core$Tuple$pair,
 						'Item Detail',
-						$author$project$Main$itemDetailPage(model));
+						A2($author$project$Main$itemDetailPage, model, itemId));
 				case 'TransactionPage':
 					return A2(
 						$elm$core$Tuple$pair,
-						'Transactiosns',
+						'Transactions',
 						$author$project$Main$transactionPage(model));
 				default:
 					var transactionId = page.a;
 					return A2(
 						$elm$core$Tuple$pair,
 						'Transaction Detail',
-						$author$project$Main$transactionPage(model));
+						$author$project$Main$transactionDetail(model));
 			}
 		}
 	}();

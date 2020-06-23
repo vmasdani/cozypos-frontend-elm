@@ -89,6 +89,7 @@ type alias ProjectModel =
 
 type alias ItemModel =
   { item : Item
+  , requestStatus : RequestStatus
   , itemStockViews : List ItemStockView
   , searchInput : String
   }
@@ -148,6 +149,7 @@ initialProject =
   , createdAt = ""
   }
 
+projectDecoder : Decoder Project
 projectDecoder =
   Decode.map6 Project
     (field "id" int)
@@ -157,6 +159,7 @@ projectDecoder =
     (field "updated_at" string)
     (field "created_at" string)
 
+projectEncoder : Project -> Encode.Value
 projectEncoder project =
   Encode.object
     [ ("id", Encode.int project.id)
@@ -191,6 +194,7 @@ initialItem =
   , updatedAt = ""
   }
 
+itemDecoder : Decoder Item
 itemDecoder =
   Decode.map8 Item
     (field "id" int)
@@ -213,6 +217,7 @@ type alias Transaction =
   , updatedAt : String
   }
 
+transactionDecoder : Decoder Transaction
 transactionDecoder =
   Decode.map8 Transaction
     (field "id" int)
@@ -233,6 +238,7 @@ type alias StockIn =
   , createdAt: String
   }
 
+stockInDecoder : Decoder StockIn
 stockInDecoder =
   Decode.map6 StockIn
     (field "id" int)
@@ -252,6 +258,7 @@ type alias ItemTransaction =
   , updatedAt : String
   }
 
+itemTransactionDecoder : Decoder ItemTransaction
 itemTransactionDecoder =
   Decode.map7 ItemTransaction
     (field "id" int)
@@ -273,6 +280,7 @@ type alias ItemStockIn =
   , updatedAt : String
   }
 
+itemStockInDecoder : Decoder ItemStockIn
 itemStockInDecoder =
   Decode.map7 ItemStockIn
     (field "id" int)
@@ -293,6 +301,7 @@ type alias ItemProject =
   , updatedAt : String
   }
 
+itemProjectDecoder : Decoder ItemProject
 itemProjectDecoder =
   Decode.map7 ItemProject
     (field "id" int)
@@ -310,6 +319,7 @@ type alias ProjectView =
   , totalManufacturingPrice : Int
   }
 
+projectViewDecoder : Decoder ProjectView
 projectViewDecoder =
   Decode.map3 ProjectView
     (field "project" projectDecoder)
@@ -321,6 +331,7 @@ type alias ProjectsView =
   , totalIncome : Int
   }
 
+projectsViewDecoder : Decoder ProjectsView
 projectsViewDecoder =
   Decode.map2 ProjectsView
     (field "projects" (Decode.list projectViewDecoder))
@@ -330,7 +341,7 @@ type alias ProjectTransactionsView =
   { project : Maybe Project
   , transactions : List TransactionView
   }
-
+projectTransactionsViewDecoder : Decoder ProjectTransactionsView
 projectTransactionsViewDecoder =
   Decode.map2 ProjectTransactionsView
     (field "project" (maybe projectDecoder))
@@ -347,7 +358,7 @@ type alias TransactionView =
   , itemTransactions : List ItemTransactionView
   , totalPrice : Int
   }
-
+transactionViewDecoder : Decoder TransactionView
 transactionViewDecoder =
   Decode.map3 TransactionView
     (field "transaction" transactionDecoder)
@@ -359,6 +370,7 @@ type alias ItemTransactionView =
   , item : Item
   }
 
+itemTransactionViewDecoder : Decoder ItemTransactionView
 itemTransactionViewDecoder =
   Decode.map2 ItemTransactionView
     (field "itemTransaction" itemTransactionDecoder)
@@ -375,6 +387,7 @@ initialItemStockView =
   , inStock = 0
   }
 
+itemStockViewDecoder : Decoder ItemStockView
 itemStockViewDecoder =
   Decode.map2 ItemStockView
     (field "item" (maybe itemDecoder))
@@ -401,6 +414,7 @@ init flag url key =
     initialItemModel : ItemModel
     initialItemModel =
       { item = initialItem
+      , requestStatus = NotAsked
       , itemStockViews = []
       , searchInput = ""
       }
@@ -470,16 +484,10 @@ update msg model =
           ( model, Nav.load href )
 
     UrlChanged url ->
-      let
-        newModel = ( { model | url = url } )
-      in
-      fetchByUrl newModel
+      fetchByUrl { model | url = url  }
 
     Login ->
-      let
-        newModel = ( { model | loggedIn = True } )
-      in
-      fetchByUrl newModel
+      fetchByUrl { model | loggedIn = True }
 
     Logout ->
       ( { model | loggedIn = False }, Cmd.none )
@@ -560,12 +568,16 @@ update msg model =
         Ok itemStockViews ->
           let
             itemState = model.itemState
-            newItemState = { itemState | itemStockViews = itemStockViews }
+            newItemState = { itemState | itemStockViews = itemStockViews, requestStatus = Success }
           in
           ( { model | itemState = newItemState }, Cmd.none )
         
         Err _ ->
-          ( model, Cmd.none )
+          let
+            itemState = model.itemState
+            newItemState = { itemState | requestStatus = Error }
+          in
+          ( { model | itemState = newItemState }, Cmd.none )
 
     InputProjectName name ->
       let
@@ -641,7 +653,9 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch 
-    [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject ]
+    [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject 
+    , Navbar.subscriptions model.navbarState NavbarMsg
+    ]
 
 -- VIEW
 
@@ -668,13 +682,13 @@ view model =
             Tuple.pair "Items" (itemPage model)
 
           ItemDetail itemId ->
-            Tuple.pair "Item Detail" (itemDetailPage model)
+            Tuple.pair "Item Detail" (itemDetailPage model itemId)
 
           TransactionPage ->
-            Tuple.pair "Transactiosns" (transactionPage model)
+            Tuple.pair "Transactions" (transactionPage model)
 
           TransactionDetail transactionId ->
-            Tuple.pair "Transaction Detail" (transactionPage model)
+            Tuple.pair "Transaction Detail" (transactionDetail model)
             
   in
   { title = ("Cozy PoS | " ++ Tuple.first currentPage)
@@ -685,12 +699,14 @@ view model =
       ]
   }
 
+loginPage : Model -> Html Msg
 loginPage model =
   div []
     [ text "Cozy PoS"
     , button [ onClick Login ] [ text "Login" ] 
     ]
 
+mainPage : Model -> Html Msg
 mainPage model =
   div []
     [ navbar model
@@ -698,6 +714,7 @@ mainPage model =
     , button [ onClick Logout ] [ text "Logout" ]
     ]
 
+navbar : Model -> Html Msg
 navbar model =
   Navbar.config NavbarMsg
     |> Navbar.withAnimation
@@ -747,12 +764,11 @@ transactionPage model =
         ]
     , div [] 
         [ if model.transactionState.requestStatus == Loading then
-            Spinner.spinner [ Spinner.grow ] []
+            Spinner.spinner [] []
           else  
             -- text <| Debug.toString model.transactionState.projects 
             text "Load complete"
         ]
-    , div [] [ Spinner.spinner [] [] ]
     , div [] [ addButton ]
     , div []
         [ let
@@ -774,7 +790,17 @@ transactionCard : TransactionView -> ListGroup.Item msg
 transactionCard transactionView =
   ListGroup.li []
     [ div [] 
-      [ div [] [ text <| ("ID no." ++ String.fromInt transactionView.transaction.id) ]
+      [ div [ class "d-flex justify-content-between" ] 
+          [ text <| ("ID no." ++ String.fromInt transactionView.transaction.id) 
+          , a [ href <| "/#/transactions/" ++ String.fromInt transactionView.transaction.id ] 
+              [ Button.button 
+                  [ Button.info
+                  , Button.small
+                  , Button.attrs [ class "mx-2" ] 
+                  ]
+                  [ text "Details" ]
+              ] 
+          ]
       , div [ class "d-flex justify-content-between align-items-center" ] 
           [ h4 [] 
               [ text <|
@@ -792,6 +818,15 @@ transactionCard transactionView =
       ] 
     ]
 
+transactionDetail : Model -> Html Msg
+transactionDetail model =
+  div [] 
+    [ navbar model
+    , a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ] 
+    , div [] [text "Transaction Detail page"] 
+    ]
+
+itemPage : Model -> Html Msg
 itemPage model =
   let
     filterItemStockView itemStockView =
@@ -806,10 +841,14 @@ itemPage model =
   in
   div [] 
     [ navbar model
-    , div [] [ text "This is the item page"]
+    , div [] [ text "Item page here" ]
     , div []
         [ a [ href "/#/items/add" ]  
             [ Button.button [ Button.primary ] [ text "Add" ] ]
+        , if model.itemState.requestStatus == Loading then
+            Spinner.spinner [ Spinner.attrs [class "mx-2"] ] []
+          else
+            text "Load complete"
         ]
     , div [ class "my-2" ] 
         [ Input.text [ Input.placeholder "Search item...", Input.onInput InputSearchItem ] ]        
@@ -817,6 +856,7 @@ itemPage model =
         [ ListGroup.ul (List.map itemCard filteredItems) ]
     ]
 
+itemCard : ItemStockView -> ListGroup.Item Msg
 itemCard itemStockView =
   let
     item =
@@ -839,7 +879,8 @@ itemCard itemStockView =
         ] 
     ]
 
-itemDetailPage model =
+itemDetailPage : Model -> String -> Html Msg
+itemDetailPage model itemId =
   div [] 
       [ navbar model
       , div [] [ text "This is the item detail page"] 
@@ -849,6 +890,7 @@ itemDetailPage model =
           ]
       ]
 
+projectPage : Model -> Html Msg
 projectPage model =
   div [] 
   [ navbar model 
@@ -862,6 +904,7 @@ projectPage model =
       (List.map projectCard model.projectState.projects.projects)
   ]
 
+projectCard : ProjectView -> Html Msg
 projectCard projectView =
   div []
     [ a [ href ("/#/projects/" ++ String.fromInt projectView.project.id) ] 
@@ -869,6 +912,7 @@ projectCard projectView =
     ]
 
 
+projectDetailPage : Model -> String -> Html Msg
 projectDetailPage model projectId =
   div []
     [ navbar model
@@ -902,6 +946,7 @@ projectDetailPage model projectId =
 
 -- HELPERS
 
+sendRequest : String -> String -> String -> Http.Body -> Http.Expect msg -> Cmd msg
 sendRequest baseUrl method target body expect =
   Http.request
     { method = method
@@ -913,6 +958,7 @@ sendRequest baseUrl method target body expect =
     , tracker = Nothing
     }
 
+fetchByUrl : Model -> (Model, Cmd Msg)
 fetchByUrl model =
   let
     page = Maybe.withDefault Index <| Url.parse urlParser <| model.url
@@ -974,7 +1020,11 @@ fetchByUrl model =
     --   )
 
     ItemPage ->
-      ( model
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+      ( { model | itemState = newItemState }
       , sendRequest
           model.baseUrl
           "GET"
