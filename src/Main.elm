@@ -666,29 +666,29 @@ view model =
     page = Maybe.withDefault Index <| Url.parse urlParser <| model.url
     currentPage =
       if not model.loggedIn then
-        Tuple.pair "Login" (loginPage model)
+        ("Login", (loginPage model))
       else
         case page of
           Index ->
-            Tuple.pair "Index" (transactionPage model)
+            ("Index", (transactionPage model))
 
           ProjectPage ->
-            Tuple.pair "Projects" (projectPage model)
+            ("Projects", (projectPage model))
 
           ProjectDetail projectId ->
-            Tuple.pair "Project Detail" (projectDetailPage model projectId)
+            ("Project Detail", (projectDetailPage model projectId))
 
           ItemPage ->
-            Tuple.pair "Items" (itemPage model)
+            ("Items", (itemPage model))
 
           ItemDetail itemId ->
-            Tuple.pair "Item Detail" (itemDetailPage model itemId)
+            ("Item Detail", (itemDetailPage model itemId))
 
           TransactionPage ->
-            Tuple.pair "Transactions" (transactionPage model)
+            ("Transactions", (transactionPage model))
 
           TransactionDetail transactionId ->
-            Tuple.pair "Transaction Detail" (transactionDetail model)
+            ("Transaction Detail", (transactionDetail model))
             
   in
   { title = ("Cozy PoS | " ++ Tuple.first currentPage)

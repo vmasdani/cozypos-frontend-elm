@@ -10150,10 +10150,6 @@ var $author$project$Main$loginPage = function (model) {
 					]))
 			]));
 };
-var $elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
 var $author$project$Main$InputProjectDate = function (a) {
 	return {$: 'InputProjectDate', a: a};
 };
@@ -10732,6 +10728,10 @@ var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$childNode = function (id
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$nextSibling = function (decoder) {
 	return A2($elm$json$Json$Decode$field, 'nextSibling', decoder);
 };
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$className = A2(
 	$elm$json$Json$Decode$at,
 	_List_fromArray(
@@ -11050,48 +11050,40 @@ var $author$project$Main$view = function (model) {
 		A2($elm$url$Url$Parser$parse, $author$project$Main$urlParser, model.url));
 	var currentPage = function () {
 		if (!model.loggedIn) {
-			return A2(
-				$elm$core$Tuple$pair,
+			return _Utils_Tuple2(
 				'Login',
 				$author$project$Main$loginPage(model));
 		} else {
 			switch (page.$) {
 				case 'Index':
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Index',
 						$author$project$Main$transactionPage(model));
 				case 'ProjectPage':
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Projects',
 						$author$project$Main$projectPage(model));
 				case 'ProjectDetail':
 					var projectId = page.a;
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Project Detail',
 						A2($author$project$Main$projectDetailPage, model, projectId));
 				case 'ItemPage':
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Items',
 						$author$project$Main$itemPage(model));
 				case 'ItemDetail':
 					var itemId = page.a;
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Item Detail',
 						A2($author$project$Main$itemDetailPage, model, itemId));
 				case 'TransactionPage':
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Transactions',
 						$author$project$Main$transactionPage(model));
 				default:
 					var transactionId = page.a;
-					return A2(
-						$elm$core$Tuple$pair,
+					return _Utils_Tuple2(
 						'Transaction Detail',
 						$author$project$Main$transactionDetail(model));
 			}
