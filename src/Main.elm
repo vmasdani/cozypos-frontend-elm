@@ -702,9 +702,9 @@ view model =
 
 loginPage : Model -> Html Msg
 loginPage model =
-  div []
-    [ text "Cozy PoS"
-    , button [ onClick Login ] [ text "Login" ] 
+  div [ class "d-flex flex-column w-100 justify-content-center align-items-center bg-dark", style "height" "100vh" ]
+    [ h3 [ class "text-white" ] [ text "Cozy PoS" ]    
+    , div [] [ Button.button [ Button.onClick Login, Button.light ] [ text "Login" ] ]
     ]
 
 mainPage : Model -> Html Msg
@@ -895,12 +895,18 @@ projectPage : Model -> Html Msg
 projectPage model =
   div [] 
   [ navbar model 
-  , text "This is the project page"
-  , Button.linkButton
-      [ Button.primary 
-      , Button.attrs [ href "/#/projects/new" ]
-      ]
-      [ text "Add" ]
+  , div [] [ text "This is the project page" ]
+  , div []
+      [ Button.linkButton
+        [ Button.primary 
+        , Button.attrs [ href "/#/projects/new" ]
+        ]
+        [ text "Add" ]
+      , if model.projectState.requestStatus == Loading then
+          Spinner.spinner [] []
+        else
+          text "Load complete."
+      ] 
   , div []
       (List.map projectCard model.projectState.projects.projects)
   ]
@@ -966,7 +972,11 @@ fetchByUrl model =
   in
   case page of
     ProjectPage ->
-      ( model 
+      let
+        projectState = model.projectState
+        newProjectState = { projectState | requestStatus = Loading }
+      in
+      ( { model | projectState = newProjectState } 
       , sendRequest 
           model.baseUrl 
           "GET" 

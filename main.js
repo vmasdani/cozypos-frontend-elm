@@ -7342,8 +7342,14 @@ var $author$project$Main$fetchByUrl = function (model) {
 		A2($elm$url$Url$Parser$parse, $author$project$Main$urlParser, model.url));
 	switch (page.$) {
 		case 'ProjectPage':
+			var projectState = model.projectState;
+			var newProjectState = _Utils_update(
+				projectState,
+				{requestStatus: $author$project$Main$Loading});
 			return _Utils_Tuple2(
-				model,
+				_Utils_update(
+					model,
+					{projectState: newProjectState}),
 				A5(
 					$author$project$Main$sendRequest,
 					model.baseUrl,
@@ -10125,28 +10131,46 @@ var $author$project$Main$itemPage = function (model) {
 			]));
 };
 var $author$project$Main$Login = {$: 'Login'};
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Light = {$: 'Light'};
+var $rundis$elm_bootstrap$Bootstrap$Button$light = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Light));
 var $author$project$Main$loginPage = function (model) {
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
 		_List_fromArray(
 			[
-				$elm$html$Html$text('Cozy PoS'),
+				$elm$html$Html$Attributes$class('d-flex flex-column w-100 justify-content-center align-items-center bg-dark'),
+				A2($elm$html$Html$Attributes$style, 'height', '100vh')
+			]),
+		_List_fromArray(
+			[
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$h3,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Main$Login)
+						$elm$html$Html$Attributes$class('text-white')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Login')
+						$elm$html$Html$text('Cozy PoS')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Button$button,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$Main$Login),
+								$rundis$elm_bootstrap$Bootstrap$Button$light
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Login')
+							]))
 					]))
 			]));
 };
@@ -10364,21 +10388,34 @@ var $author$project$Main$projectPage = function (model) {
 		_List_fromArray(
 			[
 				$author$project$Main$navbar(model),
-				$elm$html$Html$text('This is the project page'),
 				A2(
-				$rundis$elm_bootstrap$Bootstrap$Button$linkButton,
+				$elm$html$Html$div,
+				_List_Nil,
 				_List_fromArray(
 					[
-						$rundis$elm_bootstrap$Bootstrap$Button$primary,
-						$rundis$elm_bootstrap$Bootstrap$Button$attrs(
+						$elm$html$Html$text('This is the project page')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Button$linkButton,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$href('/#/projects/new')
-							]))
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Add')
+								$rundis$elm_bootstrap$Bootstrap$Button$primary,
+								$rundis$elm_bootstrap$Bootstrap$Button$attrs(
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href('/#/projects/new')
+									]))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Add')
+							])),
+						_Utils_eq(model.projectState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : $elm$html$Html$text('Load complete.')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10649,7 +10686,12 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$dropdown = F2(
 					A3($rundis$elm_bootstrap$Bootstrap$Dropdown$dropdownMenu, state, config, items)
 				]));
 	});
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$DropdownToggle = function (a) {
 	return {$: 'DropdownToggle', a: a};
 };
