@@ -14,6 +14,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Dropdown as Dropdown
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Text as Text
 import Bootstrap.Progress as Progress
 import Bootstrap.ListGroup as ListGroup
@@ -92,6 +93,8 @@ type alias ItemModel =
   , requestStatus : RequestStatus
   , itemStockViews : List ItemStockView
   , searchInput : String
+  , addInitialStock : Bool
+  , initialStock : Int
   }
 
 type alias TransactionModel =
@@ -417,6 +420,8 @@ init flag url key =
       , requestStatus = NotAsked
       , itemStockViews = []
       , searchInput = ""
+      , addInitialStock = False
+      , initialStock = 0
       }
 
     initialModel : Model 
@@ -471,6 +476,14 @@ type Msg
   | GotProjectTransaction (Result Http.Error ProjectTransactionsView)
   -- Item
   | InputSearchItem String
+  | ChangeItemName String
+  | ChangeItemDescription String
+  | ChangeItemPrice String
+  | ChangeItemManufacturingPrice String
+  | ToggleInitialStock
+  | ChangeInitialStock String
+  | GotItem (Result Http.Error Item)
+  | SaveItem
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -618,7 +631,17 @@ update msg model =
     SavedProject res ->
       case res of
         Ok str ->
-          ( model, Nav.pushUrl model.key "/#/projects" )
+          ( model, 
+            Cmd.batch
+              [ sendRequest
+                  model.baseUrl
+                  "GET"
+                  "/projects"
+                  Http.emptyBody
+                  (Http.expectJson GotProjects (Decode.list projectDecoder))
+              , Nav.pushUrl model.key "/#/projects"
+              ] 
+          )
 
         Err e ->
           ( model, Cmd.none )
@@ -646,6 +669,88 @@ update msg model =
         newItemState = { itemState | searchInput = searchInput }
       in
         ( { model | itemState = newItemState }, Cmd.none )
+
+    ChangeItemName name ->
+      let
+        itemState = model.itemState
+        item = itemState.item
+        newItem = { item | name = name }
+        newItemState =  { itemState | item = newItem }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
+
+    ChangeItemDescription description ->
+      let
+
+        itemState = model.itemState
+        item = itemState.item
+        newItem = { item | description = description }
+        newItemState =  { itemState | item = newItem }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
+
+    ChangeItemPrice priceString ->
+      let
+        parsedPrice = Maybe.withDefault 0 (String.toInt priceString)
+
+        itemState = model.itemState
+        item = itemState.item
+        newItem = { item | price = parsedPrice }
+        newItemState =  { itemState | item = newItem }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
+    
+    ChangeItemManufacturingPrice manufacturingPriceString ->
+      let
+        parsedManufacturingPrice = Maybe.withDefault 0 (String.toInt manufacturingPriceString)
+
+        itemState = model.itemState
+        item = itemState.item
+        newItem = { item | manufacturingPrice = parsedManufacturingPrice }
+        newItemState = { itemState | item = newItem }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
+
+    ToggleInitialStock ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | addInitialStock = not itemState.addInitialStock }
+      in
+      ( { model | itemState = newItemState}, Cmd.none )
+
+    ChangeInitialStock initialStock ->
+      let
+        parsedInitialStock = Maybe.withDefault 0 (String.toInt initialStock)
+
+        itemState = model.itemState
+        newItemState = { itemState | initialStock = parsedInitialStock }
+      in
+        ( { model | itemState = newItemState }, Cmd.none )
+
+    GotItem res ->
+      let
+        itemState = model.itemState
+      in
+      case res of
+        Ok item ->
+          let
+            newItemState = { itemState | item = item, requestStatus = Success }
+          in
+          ( { model | itemState = newItemState }, Cmd.none )
+
+        Err _ ->
+          let
+            newItemState = { itemState | requestStatus = Error }
+          in
+          ( { model | itemState = newItemState }, Cmd.none )
+
+    SaveItem ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+      (Debug.log "Save item!")
+      ( { model | itemState = newItemState }, Cmd.none )
 
 -- SUBSCRIPTIONS
 
@@ -744,8 +849,10 @@ transactionPage model =
     addButton =
       case model.transactionState.projectTransactionsView.project of
         Just _ ->
-          a [ href <| "/#/transactions/new" ]
-            [ Button.button [ Button.primary ] [ text "Add" ] ]
+          div [ class "d-flex justify-content-end mx-3" ]
+            [ a [ href <| "/#/transactions/new" ]
+              [ Button.button [ Button.primary ] [ text "Add" ] ]
+            ]
       
         _ ->
           div [] []
@@ -789,6 +896,13 @@ transactionPage model =
 
 transactionCard : TransactionView -> ListGroup.Item msg
 transactionCard transactionView =
+  let
+    itemTransactions = transactionView.itemTransactions
+    items = 
+      List.map 
+      (\itemTransactionView -> itemTransactionView.item.name ++ " " ++ String.fromInt itemTransactionView.itemTransaction.qty ++ "x") 
+      itemTransactions
+  in
   ListGroup.li []
     [ div [] 
       [ div [ class "d-flex justify-content-between" ] 
@@ -816,6 +930,8 @@ transactionCard transactionView =
           ]
       , div []
           [ text <| "Orig: Rp" ++ format usLocale (toFloat transactionView.totalPrice) ]
+      , div []
+          [ b [] [text <| String.join ", " items] ]
       ] 
     ]
 
@@ -842,17 +958,17 @@ itemPage model =
   in
   div [] 
     [ navbar model
-    , div [] [ text "Item page here" ]
-    , div []
-        [ a [ href "/#/items/add" ]  
+    , div [ class "d-flex justify-content-end" ]
+        [ Input.text [ Input.placeholder "Search item...", Input.onInput InputSearchItem ]
+        , a [ href "/#/items/add" ]  
             [ Button.button [ Button.primary ] [ text "Add" ] ]
-        , if model.itemState.requestStatus == Loading then
+        ]
+    , div []
+        [ if model.itemState.requestStatus == Loading then
             Spinner.spinner [ Spinner.attrs [class "mx-2"] ] []
           else
-            text "Load complete"
+            span [] []
         ]
-    , div [ class "my-2" ] 
-        [ Input.text [ Input.placeholder "Search item...", Input.onInput InputSearchItem ] ]        
     , div []
         [ ListGroup.ul (List.map itemCard filteredItems) ]
     ]
@@ -876,19 +992,105 @@ itemCard itemStockView =
         , div [] [ h5 [] [ text <| "Rp" ++ format usLocale (toFloat item.price)] ]
         , div [] [ text <| "Manuf.price: Rp" ++ format usLocale (toFloat item.manufacturingPrice) ]
         , div [] [ text item.description ]
-        , div [] [ text "In stock: ", span [] [ b [] [ text <| String.fromInt itemStockView.inStock ] ] ]
+        , div [ class "d-flex justify-content-between align-items-center" ] 
+            [ div []
+                [ text "In stock: "
+                , span [] [ b [] [ text <| String.fromInt itemStockView.inStock ] ]
+                ]
+            , div []
+                [ a [ href ("/#/stockin/" ++ String.fromInt item.id) ]
+                    [ Button.button [ Button.info, Button.small ] [ text "Stock in" ] ] 
+                ] 
+            ]
         ] 
     ]
 
 itemDetailPage : Model -> String -> Html Msg
 itemDetailPage model itemId =
-  div [] 
+  div []
       [ navbar model
       , div [] [ text "This is the item detail page"] 
       , div []
           [ a [ href "/#/items" ]  
-              [ Button.button [] [ text "Back" ] ]
+              [ Button.button [ Button.secondary ] [ text "Back" ] ]
+          , Button.button 
+              [ Button.primary
+              , Button.attrs 
+                  [ class "mx-1" ]
+              , Button.onClick SaveItem
+              ] 
+              [ text "Save" ]
+          , if model.itemState.requestStatus == Loading then
+              Spinner.spinner [] []
+            else
+              span [] []
           ]
+      , div [] [ text <| "Item id: " ++ itemId ]
+      -- , div [] [ text <| Debug.toString model.itemState.item ]
+      , div [ class "mx-1" ]
+          [ Form.group []
+              [ Form.label [ for "name" ] [ text "Name" ]
+              , Input.text 
+                  [ Input.id "name"
+                  , Input.placeholder "Name..." 
+                  , Input.value model.itemState.item.name
+                  , Input.onInput ChangeItemName
+                  ]
+              ]
+          , Form.group []
+              [ Form.label [ for "description" ] [ text "Description" ]
+              , Input.text 
+                  [ Input.id "description"
+                  , Input.placeholder "Description..." 
+                  , Input.value model.itemState.item.description
+                  , Input.onInput ChangeItemDescription
+                  ]
+              ]
+          , Form.group []
+              [ Form.label [ for "price" ] [ text "Price" ]
+              , Input.text 
+                  [ Input.id "price", Input.placeholder "Price..."
+                  , Input.value <| String.fromInt model.itemState.item.price
+                  , Input.onInput ChangeItemPrice
+                  ]
+              ]
+          , Form.group []
+              [ Form.label [ for "manufacturingPrice" ] [ text "Manufacturing Price" ]
+              , Input.text 
+                  [ Input.id "manufacturingPrice"
+                  , Input.placeholder "Manufacturing price..." 
+                  , Input.value <| String.fromInt model.itemState.item.manufacturingPrice
+                  , Input.onInput ChangeItemManufacturingPrice
+                  ]
+              ]
+          ]
+      , case String.toInt itemId of
+          Just _ ->
+            span [] []
+
+          _ ->
+            div []
+              [ Checkbox.checkbox 
+                [ Checkbox.id "initialStockCheck"
+                , Checkbox.checked model.itemState.addInitialStock 
+                , Checkbox.attrs [ onClick ToggleInitialStock ]
+                ] 
+                "Add initial stock?"
+              , Form.group 
+                  [ Form.attrs 
+                      [ class "mx-1"
+                      , style "display" (if model.itemState.addInitialStock then "block" else "none")
+                      ] 
+                  ]
+                  [ Form.label [ for "initialStockForm" ] [ text "Initial Stock" ]
+                  , Input.text
+                      [ Input.id "initialStockForm"
+                      , Input.placeholder "Initial Stock..."
+                      , Input.value <| String.fromInt model.itemState.initialStock
+                      , Input.onInput ChangeInitialStock 
+                      ]
+                  ] 
+              ]
       ]
 
 projectPage : Model -> Html Msg
@@ -1042,6 +1244,20 @@ fetchByUrl model =
           "/itemstocks"
           Http.emptyBody
           (Http.expectJson GotItems (Decode.list itemStockViewDecoder)) 
+      )
+
+    ItemDetail itemId ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+      ( { model | itemState = newItemState } 
+      , sendRequest
+          model.baseUrl
+          "GET"
+          ("/items/" ++ itemId)
+          Http.emptyBody
+          (Http.expectJson GotItem itemDecoder)
       )
 
     _ ->
