@@ -103,6 +103,7 @@ type alias TransactionModel =
   , projectsDropdown : Dropdown.State
   , projectTransactionsView : ProjectTransactionsView
   , selectedProject : String
+  , transactionView : Maybe TransactionView
   }
 
 initialTransactionModel : TransactionModel
@@ -112,6 +113,7 @@ initialTransactionModel =
   , projectsDropdown = Dropdown.initialState
   , projectTransactionsView = initialProjectTransationsView
   , selectedProject = "Select Project"
+  , transactionView = Nothing
   }
 
 type RequestStatus 
@@ -209,6 +211,19 @@ itemDecoder =
     (field "updated_at" string)
     (field "created_at" string)
 
+itemEncoder : Item -> Encode.Value
+itemEncoder item =
+  Encode.object 
+    [ ( "id", Encode.int item.id )
+    , ( "uid", Encode.string item.uid )
+    , ( "name", Encode.string item.name )
+    , ( "description", Encode.string item.description )
+    , ( "price", Encode.int item.price )
+    , ( "manufacturingPrice", Encode.int item.manufacturingPrice )
+    -- , ( "updated_at", Encode.string item.updatedAt )
+    -- , ( "created_at", Encode.string item.createdAt )
+    ]
+
 type alias Transaction =
   { id : Int
   , uid : String
@@ -218,6 +233,17 @@ type alias Transaction =
   , projectId: Int
   , createdAt: String
   , updatedAt : String
+  }
+
+initialTransaction =
+  { id = 0
+  , uid = ""
+  , cashier = ""
+  , priceIsCustom = False
+  , customPrice = 0
+  , projectId = 0
+  , createdAt = ""
+  , updatedAt = ""
   }
 
 transactionDecoder : Decoder Transaction
@@ -231,6 +257,19 @@ transactionDecoder =
     (field "projectId" int)
     (field "updated_at" string)
     (field "created_at" string)
+
+transactionEncoder : Transaction -> Encode.Value
+transactionEncoder transaction =
+  Encode.object
+    [ ( "id", Encode.int transaction.id )
+    , ( "uid", Encode.string transaction.uid )
+    , ( "cashier", Encode.string transaction.cashier )
+    , ( "priceIsCustom", Encode.bool transaction.priceIsCustom )
+    , ( "customPrice", Encode.int transaction.customPrice )
+    , ( "projectId", Encode.int transaction.projectId )
+    -- , ( "created_at", Encode.string transaction.createdAt )
+    -- , ( "updated_at", Encode.string transaction.updatedAt ) 
+    ]
 
 type alias StockIn = 
   { id : Int
@@ -272,6 +311,17 @@ itemTransactionDecoder =
     (field "updated_at" string)
     (field "created_at" string)
     
+itemTransactionEncoder : ItemTransaction -> Encode.Value
+itemTransactionEncoder itemTransaction =
+  Encode.object
+    [ ( "id", Encode.int itemTransaction.id )
+    , ( "uid", Encode.string itemTransaction.uid )
+    , ( "itemId", Encode.int itemTransaction.itemId )
+    , ( "transactionId", Encode.int itemTransaction.transactionId )
+    , ( "qty", Encode.int itemTransaction.qty )
+    -- , ( "updated_at", Encode.string itemTransaction.updatedAt )
+    -- , ( "created_at", Encode.string itemTransaction.createdAt )
+    ]
 
 type alias ItemStockIn =
   { id : Int
@@ -361,6 +411,14 @@ type alias TransactionView =
   , itemTransactions : List ItemTransactionView
   , totalPrice : Int
   }
+
+initialTransactionView : TransactionView
+initialTransactionView =
+  { transaction = initialTransaction
+  , itemTransactions = []
+  , totalPrice = 0
+  }
+
 transactionViewDecoder : Decoder TransactionView
 transactionViewDecoder =
   Decode.map3 TransactionView
@@ -379,6 +437,13 @@ itemTransactionViewDecoder =
     (field "itemTransaction" itemTransactionDecoder)
     (field "item" itemDecoder)
 
+itemTransactionViewEncoder :  ItemTransactionView -> Encode.Value
+itemTransactionViewEncoder itemTransactionView =
+  Encode.object
+    [ ( "itemTransaction", itemTransactionEncoder itemTransactionView.itemTransaction )
+    , ( "item", itemEncoder itemTransactionView.item )
+    ]
+
 type alias ItemStockView =
   { item : Maybe Item
   , inStock : Int
@@ -395,6 +460,21 @@ itemStockViewDecoder =
   Decode.map2 ItemStockView
     (field "item" (maybe itemDecoder))
     (field "inStock" int)
+
+-- DB POST BODY
+type alias TransactionPostBody =
+  { transaction : Transaction
+  , itemTransactions : List ItemTransaction
+  , itemTransactionDeleteIds : List Int
+  }
+
+transactionPostBodyEncoder : TransactionPostBody -> Encode.Value
+transactionPostBodyEncoder transactionPostBody =
+  Encode.object
+    [ ( "transaction", transactionEncoder transactionPostBody.transaction )
+    , ( "itemTransactions", (Encode.list itemTransactionEncoder) transactionPostBody.itemTransactions )
+    , ( "itemTransactionDeleteIds", (Encode.list Encode.int) transactionPostBody.itemTransactionDeleteIds )
+    ]
 
 init : Flag -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flag url key =
@@ -474,6 +554,10 @@ type Msg
   | SavedProject (Result Http.Error String)
   -- Transaction
   | GotProjectTransaction (Result Http.Error ProjectTransactionsView)
+  | GotTransaction (Result Http.Error Transaction)
+  | GotTransactionView (Result Http.Error TransactionView)
+  | CheckPriceIsCustom
+  | ChangeCustomPrice String
   -- Item
   | InputSearchItem String
   | ChangeItemName String
@@ -662,6 +746,79 @@ update msg model =
             newTransactionState = { transactionState | requestStatus = Error }
           in
           ( { model | transactionState = newTransactionState}, Cmd.none )
+
+    GotTransaction res ->
+      let
+        transactionState = model.transactionState
+      in
+      case res of
+        Ok transaction ->
+          let
+            newTransactionState = { transactionState | requestStatus = Success }
+          in 
+            ( { model | transactionState = newTransactionState }, Cmd.none )
+
+        Err _ ->
+          let
+            newTransactionState = { transactionState | requestStatus = Error }
+          in 
+            ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    GotTransactionView res ->
+      let
+        transactionState = model.transactionState
+      in
+      case res of
+        Ok transactionView ->
+          let
+            newTransactionState = 
+              { transactionState 
+              | requestStatus = Success
+              , transactionView = Just transactionView 
+              }
+          in
+          (Debug.log <| Debug.toString transactionView)
+          ( { model | transactionState = newTransactionState }, Cmd.none )
+
+        Err _ ->
+          let
+            newTransactionState = { transactionState | requestStatus = Error }
+          in 
+          ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    CheckPriceIsCustom ->
+      case model.transactionState.transactionView of
+        Just tView ->
+          let
+            transactionState = model.transactionState
+            transactionView = tView
+            transaction = transactionView.transaction
+
+            newTransaction =  { transaction | priceIsCustom = not transaction.priceIsCustom }
+            newTransactionView = { transactionView | transaction = newTransaction }
+            newTransactionState = { transactionState | transactionView = Just newTransactionView  }
+          in
+            ( { model | transactionState = newTransactionState }, Cmd.none )
+
+        Nothing ->
+          ( model, Cmd.none )
+
+    ChangeCustomPrice customPrice ->
+      case model.transactionState.transactionView of
+        Just tView ->
+          let
+            transactionState = model.transactionState
+            transactionView = tView
+            transaction = transactionView.transaction
+
+            newTransaction = { transaction | customPrice = Maybe.withDefault 0 <| String.toInt customPrice }
+            newTransactionView = { transactionView | transaction = newTransaction }
+            newTransactionState = { transactionState | transactionView = Just newTransactionView }
+          in
+            ( { model | transactionState = newTransactionState }, Cmd.none )
+
+        Nothing ->
+          ( model, Cmd.none )
 
     InputSearchItem searchInput ->
       let
@@ -937,10 +1094,62 @@ transactionCard transactionView =
 
 transactionDetail : Model -> String -> Html Msg
 transactionDetail model transactionId =
+  let
+    projectName =
+      case model.transactionState.projectTransactionsView.project of
+        Just project ->
+          project.name
+
+        _ ->
+          ""
+    
+    transactionType =
+      case String.toInt transactionId of
+        Just _ ->
+          "Edit"
+
+        _ ->
+          "Add"
+
+    transactionView =
+      case model.transactionState.transactionView of
+        Just tView ->
+          tView
+
+        Nothing ->
+          initialTransactionView
+    
+  in
   div [] 
     [ navbar model
-    , a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ] 
-    , div [] [text "Transaction Detail page"] 
+    , div []
+        [ a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ]
+        , Button.button [ Button.primary, Button.attrs [ class "mx-1" ] ] [ text "Save" ]
+        ]
+    , div [] 
+        [ h4 [] [ text <| "Transaction  " ++ transactionType ++ ": " ++ projectName ]
+        ]
+    , div []
+        [ Checkbox.checkbox 
+            [ Checkbox.checked transactionView.transaction.priceIsCustom 
+            , Checkbox.attrs [ onClick CheckPriceIsCustom ]
+            ] "Custom Price?"
+        , if transactionView.transaction.priceIsCustom then
+            Form.group [ Form.attrs [ class "mx-1" ] ]
+              [ Form.label [ for "customPrice" ] [ text "Custom Price" ]
+              , Input.text 
+                  [ Input.id "customPrice"
+                  , Input.placeholder "Custom Price..." 
+                  , Input.value <| String.fromInt transactionView.transaction.customPrice
+                  , Input.onInput ChangeCustomPrice
+                  ]
+              ]
+          else
+            span [] []
+        ]
+    , div []
+        [ text "TODO: Item selection forms here"
+        ]
     ]
 
 itemPage : Model -> Html Msg
@@ -1231,6 +1440,20 @@ fetchByUrl model =
     --       Http.emptyBody
     --       (Http.expectJson GotProjects (Decode.list projectDecoder)) 
     --   )
+
+    TransactionDetail transactionId ->
+      let
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | requestStatus = Loading }
+      in
+      ( { model | transactionState = newTransactionState }
+      , sendRequest
+          model.baseUrl
+          "GET"
+          ("/transactions/view/" ++ transactionId)
+          Http.emptyBody
+          (Http.expectJson GotTransactionView transactionViewDecoder)
+      )
 
     ItemPage ->
       let

@@ -6119,7 +6119,7 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState = $rundis$elm_bootstra
 		status: $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed,
 		toggleSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0)
 	});
-var $author$project$Main$initialTransactionModel = {projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, selectedProject: 'Select Project'};
+var $author$project$Main$initialTransactionModel = {projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, selectedProject: 'Select Project', transactionView: $elm$core$Maybe$Nothing};
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $author$project$Main$Project = F6(
 	function (id, uid, name, startDate, updatedAt, createdAt) {
@@ -6967,6 +6967,9 @@ var $author$project$Main$GotProject = function (a) {
 var $author$project$Main$GotProjectsView = function (a) {
 	return {$: 'GotProjectsView', a: a};
 };
+var $author$project$Main$GotTransactionView = function (a) {
+	return {$: 'GotTransactionView', a: a};
+};
 var $author$project$Main$Index = {$: 'Index'};
 var $author$project$Main$Item = F8(
 	function (id, uid, name, description, price, manufacturingPrice, updatedAt, createdAt) {
@@ -7148,6 +7151,59 @@ var $author$project$Main$projectsViewDecoder = A3(
 		'projects',
 		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder)),
 	A2($elm$json$Json$Decode$field, 'totalIncome', $elm$json$Json$Decode$int));
+var $author$project$Main$TransactionView = F3(
+	function (transaction, itemTransactions, totalPrice) {
+		return {itemTransactions: itemTransactions, totalPrice: totalPrice, transaction: transaction};
+	});
+var $author$project$Main$ItemTransactionView = F2(
+	function (itemTransaction, item) {
+		return {item: item, itemTransaction: itemTransaction};
+	});
+var $author$project$Main$ItemTransaction = F7(
+	function (id, uid, itemId, transactionId, qty, createdAt, updatedAt) {
+		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, transactionId: transactionId, uid: uid, updatedAt: updatedAt};
+	});
+var $elm$json$Json$Decode$map7 = _Json_map7;
+var $author$project$Main$itemTransactionDecoder = A8(
+	$elm$json$Json$Decode$map7,
+	$author$project$Main$ItemTransaction,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'itemId', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'transactionId', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'qty', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $author$project$Main$itemTransactionViewDecoder = A3(
+	$elm$json$Json$Decode$map2,
+	$author$project$Main$ItemTransactionView,
+	A2($elm$json$Json$Decode$field, 'itemTransaction', $author$project$Main$itemTransactionDecoder),
+	A2($elm$json$Json$Decode$field, 'item', $author$project$Main$itemDecoder));
+var $author$project$Main$Transaction = F8(
+	function (id, uid, cashier, priceIsCustom, customPrice, projectId, createdAt, updatedAt) {
+		return {cashier: cashier, createdAt: createdAt, customPrice: customPrice, id: id, priceIsCustom: priceIsCustom, projectId: projectId, uid: uid, updatedAt: updatedAt};
+	});
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $author$project$Main$transactionDecoder = A9(
+	$elm$json$Json$Decode$map8,
+	$author$project$Main$Transaction,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'cashier', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'priceIsCustom', $elm$json$Json$Decode$bool),
+	A2($elm$json$Json$Decode$field, 'customPrice', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'projectId', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $author$project$Main$transactionViewDecoder = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Main$TransactionView,
+	A2($elm$json$Json$Decode$field, 'transaction', $author$project$Main$transactionDecoder),
+	A2(
+		$elm$json$Json$Decode$field,
+		'itemTransactions',
+		$elm$json$Json$Decode$list($author$project$Main$itemTransactionViewDecoder)),
+	A2($elm$json$Json$Decode$field, 'totalPrice', $elm$json$Json$Decode$int));
 var $author$project$Main$ItemDetail = function (a) {
 	return {$: 'ItemDetail', a: a};
 };
@@ -7400,6 +7456,23 @@ var $author$project$Main$fetchByUrl = function (model) {
 						$elm$http$Http$expectJson,
 						$author$project$Main$GotProjects,
 						$elm$json$Json$Decode$list($author$project$Main$projectDecoder))));
+		case 'TransactionDetail':
+			var transactionId = page.a;
+			var transactionState = model.transactionState;
+			var newTransactionState = _Utils_update(
+				transactionState,
+				{requestStatus: $author$project$Main$Loading});
+			return _Utils_Tuple2(
+				_Utils_update(
+					model,
+					{transactionState: newTransactionState}),
+				A5(
+					$author$project$Main$sendRequest,
+					model.baseUrl,
+					'GET',
+					'/transactions/view/' + transactionId,
+					$elm$http$Http$emptyBody,
+					A2($elm$http$Http$expectJson, $author$project$Main$GotTransactionView, $author$project$Main$transactionViewDecoder)));
 		case 'ItemPage':
 			var itemState = model.itemState;
 			var newItemState = _Utils_update(
@@ -7486,59 +7559,6 @@ var $author$project$Main$ProjectTransactionsView = F2(
 	function (project, transactions) {
 		return {project: project, transactions: transactions};
 	});
-var $author$project$Main$TransactionView = F3(
-	function (transaction, itemTransactions, totalPrice) {
-		return {itemTransactions: itemTransactions, totalPrice: totalPrice, transaction: transaction};
-	});
-var $author$project$Main$ItemTransactionView = F2(
-	function (itemTransaction, item) {
-		return {item: item, itemTransaction: itemTransaction};
-	});
-var $author$project$Main$ItemTransaction = F7(
-	function (id, uid, itemId, transactionId, qty, createdAt, updatedAt) {
-		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, transactionId: transactionId, uid: uid, updatedAt: updatedAt};
-	});
-var $elm$json$Json$Decode$map7 = _Json_map7;
-var $author$project$Main$itemTransactionDecoder = A8(
-	$elm$json$Json$Decode$map7,
-	$author$project$Main$ItemTransaction,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'itemId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'transactionId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'qty', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
-var $author$project$Main$itemTransactionViewDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Main$ItemTransactionView,
-	A2($elm$json$Json$Decode$field, 'itemTransaction', $author$project$Main$itemTransactionDecoder),
-	A2($elm$json$Json$Decode$field, 'item', $author$project$Main$itemDecoder));
-var $author$project$Main$Transaction = F8(
-	function (id, uid, cashier, priceIsCustom, customPrice, projectId, createdAt, updatedAt) {
-		return {cashier: cashier, createdAt: createdAt, customPrice: customPrice, id: id, priceIsCustom: priceIsCustom, projectId: projectId, uid: uid, updatedAt: updatedAt};
-	});
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $author$project$Main$transactionDecoder = A9(
-	$elm$json$Json$Decode$map8,
-	$author$project$Main$Transaction,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'cashier', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'priceIsCustom', $elm$json$Json$Decode$bool),
-	A2($elm$json$Json$Decode$field, 'customPrice', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'projectId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
-var $author$project$Main$transactionViewDecoder = A4(
-	$elm$json$Json$Decode$map3,
-	$author$project$Main$TransactionView,
-	A2($elm$json$Json$Decode$field, 'transaction', $author$project$Main$transactionDecoder),
-	A2(
-		$elm$json$Json$Decode$field,
-		'itemTransactions',
-		$elm$json$Json$Decode$list($author$project$Main$itemTransactionViewDecoder)),
-	A2($elm$json$Json$Decode$field, 'totalPrice', $elm$json$Json$Decode$int));
 var $author$project$Main$projectTransactionsViewDecoder = A3(
 	$elm$json$Json$Decode$map2,
 	$author$project$Main$ProjectTransactionsView,
@@ -7849,6 +7869,115 @@ var $author$project$Main$update = F2(
 							model,
 							{transactionState: newTransactionState}),
 						$elm$core$Platform$Cmd$none);
+				}
+			case 'GotTransaction':
+				var res = msg.a;
+				var transactionState = model.transactionState;
+				if (res.$ === 'Ok') {
+					var transaction = res.a;
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{requestStatus: $author$project$Main$Success});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'GotTransactionView':
+				var res = msg.a;
+				var transactionState = model.transactionState;
+				if (res.$ === 'Ok') {
+					var transactionView = res.a;
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{
+							requestStatus: $author$project$Main$Success,
+							transactionView: $elm$core$Maybe$Just(transactionView)
+						});
+					return $elm$core$Debug$log(
+						$elm$core$Debug$toString(transactionView))(
+						_Utils_Tuple2(
+							_Utils_update(
+								model,
+								{transactionState: newTransactionState}),
+							$elm$core$Platform$Cmd$none));
+				} else {
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'CheckPriceIsCustom':
+				var _v10 = model.transactionState.transactionView;
+				if (_v10.$ === 'Just') {
+					var tView = _v10.a;
+					var transactionView = tView;
+					var transactionState = model.transactionState;
+					var transaction = transactionView.transaction;
+					var newTransaction = _Utils_update(
+						transaction,
+						{priceIsCustom: !transaction.priceIsCustom});
+					var newTransactionView = _Utils_update(
+						transactionView,
+						{transaction: newTransaction});
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{
+							transactionView: $elm$core$Maybe$Just(newTransactionView)
+						});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'ChangeCustomPrice':
+				var customPrice = msg.a;
+				var _v11 = model.transactionState.transactionView;
+				if (_v11.$ === 'Just') {
+					var tView = _v11.a;
+					var transactionView = tView;
+					var transactionState = model.transactionState;
+					var transaction = transactionView.transaction;
+					var newTransaction = _Utils_update(
+						transaction,
+						{
+							customPrice: A2(
+								$elm$core$Maybe$withDefault,
+								0,
+								$elm$core$String$toInt(customPrice))
+						});
+					var newTransactionView = _Utils_update(
+						transactionView,
+						{transaction: newTransaction});
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{
+							transactionView: $elm$core$Maybe$Just(newTransactionView)
+						});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 			case 'InputSearchItem':
 				var searchInput = msg.a;
@@ -11059,8 +11188,41 @@ var $author$project$Main$projectPage = function (model) {
 				A2($elm$core$List$map, $author$project$Main$projectCard, model.projectState.projects.projects))
 			]));
 };
+var $author$project$Main$ChangeCustomPrice = function (a) {
+	return {$: 'ChangeCustomPrice', a: a};
+};
+var $author$project$Main$CheckPriceIsCustom = {$: 'CheckPriceIsCustom'};
+var $elm$html$Html$h4 = _VirtualDom_node('h4');
+var $author$project$Main$initialTransaction = {cashier: '', createdAt: '', customPrice: 0, id: 0, priceIsCustom: false, projectId: 0, uid: '', updatedAt: ''};
+var $author$project$Main$initialTransactionView = {itemTransactions: _List_Nil, totalPrice: 0, transaction: $author$project$Main$initialTransaction};
 var $author$project$Main$transactionDetail = F2(
 	function (model, transactionId) {
+		var transactionView = function () {
+			var _v2 = model.transactionState.transactionView;
+			if (_v2.$ === 'Just') {
+				var tView = _v2.a;
+				return tView;
+			} else {
+				return $author$project$Main$initialTransactionView;
+			}
+		}();
+		var transactionType = function () {
+			var _v1 = $elm$core$String$toInt(transactionId);
+			if (_v1.$ === 'Just') {
+				return 'Edit';
+			} else {
+				return 'Add';
+			}
+		}();
+		var projectName = function () {
+			var _v0 = model.transactionState.projectTransactionsView.project;
+			if (_v0.$ === 'Just') {
+				var project = _v0.a;
+				return project.name;
+			} else {
+				return '';
+			}
+		}();
 		return A2(
 			$elm$html$Html$div,
 			_List_Nil,
@@ -11068,20 +11230,41 @@ var $author$project$Main$transactionDetail = F2(
 				[
 					$author$project$Main$navbar(model),
 					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href('/#/transactions')
-						]),
+					$elm$html$Html$div,
+					_List_Nil,
 					_List_fromArray(
 						[
 							A2(
-							$rundis$elm_bootstrap$Bootstrap$Button$button,
-							_List_fromArray(
-								[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+							$elm$html$Html$a,
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Back')
+									$elm$html$Html$Attributes$href('/#/transactions')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Button$button,
+									_List_fromArray(
+										[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Back')
+										]))
+								])),
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Button$button,
+							_List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$Button$primary,
+									$rundis$elm_bootstrap$Bootstrap$Button$attrs(
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mx-1')
+										]))
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Save')
 								]))
 						])),
 					A2(
@@ -11089,7 +11272,70 @@ var $author$project$Main$transactionDetail = F2(
 					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('Transaction Detail page')
+							A2(
+							$elm$html$Html$h4,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Transaction  ' + (transactionType + (': ' + projectName)))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Form$Checkbox$checkbox,
+							_List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$Form$Checkbox$checked(transactionView.transaction.priceIsCustom),
+									$rundis$elm_bootstrap$Bootstrap$Form$Checkbox$attrs(
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick($author$project$Main$CheckPriceIsCustom)
+										]))
+								]),
+							'Custom Price?'),
+							transactionView.transaction.priceIsCustom ? A2(
+							$rundis$elm_bootstrap$Bootstrap$Form$group,
+							_List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$Form$attrs(
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mx-1')
+										]))
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('customPrice')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Custom Price')
+										])),
+									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+									_List_fromArray(
+										[
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$id('customPrice'),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Custom Price...'),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+											$elm$core$String$fromInt(transactionView.transaction.customPrice)),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$ChangeCustomPrice)
+										]))
+								])) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('TODO: Item selection forms here')
 						]))
 				]));
 	});
@@ -11500,7 +11746,6 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$toggle = F2(
 		return $rundis$elm_bootstrap$Bootstrap$Dropdown$DropdownToggle(
 			A2($rundis$elm_bootstrap$Bootstrap$Dropdown$togglePrivate, buttonOptions, children));
 	});
-var $elm$html$Html$h4 = _VirtualDom_node('h4');
 var $author$project$Main$transactionCard = function (transactionView) {
 	var itemTransactions = transactionView.itemTransactions;
 	var items = A2(
