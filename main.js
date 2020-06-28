@@ -6104,6 +6104,7 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$initialState = function (toMsg) {
 		state,
 		A2($rundis$elm_bootstrap$Bootstrap$Navbar$initWindowSize, toMsg, state));
 };
+var $author$project$Main$initialItemTransaction = {createdAt: '', id: 0, itemId: 0, qty: 0, transactionId: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialProjectTransationsView = {project: $elm$core$Maybe$Nothing, transactions: _List_Nil};
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area = F4(
 	function (top, left, width, height) {
@@ -6119,7 +6120,9 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState = $rundis$elm_bootstra
 		status: $rundis$elm_bootstrap$Bootstrap$Dropdown$Closed,
 		toggleSize: A4($rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area, 0, 0, 0, 0)
 	});
-var $author$project$Main$initialTransactionModel = {projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, selectedProject: 'Select Project', transactionView: $elm$core$Maybe$Nothing};
+var $author$project$Main$initialTransaction = {cashier: '', createdAt: '', customPrice: 0, id: 0, priceIsCustom: false, projectId: 0, uid: '', updatedAt: ''};
+var $author$project$Main$initialTransactionView = {itemTransactions: _List_Nil, totalPrice: 0, transaction: $author$project$Main$initialTransaction};
+var $author$project$Main$initialTransactionModel = {foundItems: _List_Nil, itemTransactionForm: $author$project$Main$initialItemTransaction, projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, searchByItem: '', selectedItem: $elm$core$Maybe$Nothing, selectedProject: 'Select Project', transactionView: $author$project$Main$initialTransactionView};
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $author$project$Main$Project = F6(
 	function (id, uid, name, startDate, updatedAt, createdAt) {
@@ -6944,6 +6947,9 @@ var $author$project$Main$Error = {$: 'Error'};
 var $author$project$Main$GotProjectTransaction = function (a) {
 	return {$: 'GotProjectTransaction', a: a};
 };
+var $author$project$Main$GotSearchedItems = function (a) {
+	return {$: 'GotSearchedItems', a: a};
+};
 var $author$project$Main$Loading = {$: 'Loading'};
 var $author$project$Main$SavedProject = function (a) {
 	return {$: 'SavedProject', a: a};
@@ -7462,17 +7468,22 @@ var $author$project$Main$fetchByUrl = function (model) {
 			var newTransactionState = _Utils_update(
 				transactionState,
 				{requestStatus: $author$project$Main$Loading});
-			return _Utils_Tuple2(
-				_Utils_update(
-					model,
-					{transactionState: newTransactionState}),
-				A5(
-					$author$project$Main$sendRequest,
-					model.baseUrl,
-					'GET',
-					'/transactions/view/' + transactionId,
-					$elm$http$Http$emptyBody,
-					A2($elm$http$Http$expectJson, $author$project$Main$GotTransactionView, $author$project$Main$transactionViewDecoder)));
+			var _v2 = $elm$core$String$toInt(transactionId);
+			if (_v2.$ === 'Just') {
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					A5(
+						$author$project$Main$sendRequest,
+						model.baseUrl,
+						'GET',
+						'/transactions/view/' + transactionId,
+						$elm$http$Http$emptyBody,
+						A2($elm$http$Http$expectJson, $author$project$Main$GotTransactionView, $author$project$Main$transactionViewDecoder)));
+			} else {
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			}
 		case 'ItemPage':
 			var itemState = model.itemState;
 			var newItemState = _Utils_update(
@@ -7900,10 +7911,7 @@ var $author$project$Main$update = F2(
 					var transactionView = res.a;
 					var newTransactionState = _Utils_update(
 						transactionState,
-						{
-							requestStatus: $author$project$Main$Success,
-							transactionView: $elm$core$Maybe$Just(transactionView)
-						});
+						{requestStatus: $author$project$Main$Success, transactionView: transactionView});
 					return $elm$core$Debug$log(
 						$elm$core$Debug$toString(transactionView))(
 						_Utils_Tuple2(
@@ -7922,55 +7930,69 @@ var $author$project$Main$update = F2(
 						$elm$core$Platform$Cmd$none);
 				}
 			case 'CheckPriceIsCustom':
-				var _v10 = model.transactionState.transactionView;
-				if (_v10.$ === 'Just') {
-					var tView = _v10.a;
-					var transactionView = tView;
-					var transactionState = model.transactionState;
-					var transaction = transactionView.transaction;
-					var newTransaction = _Utils_update(
-						transaction,
-						{priceIsCustom: !transaction.priceIsCustom});
-					var newTransactionView = _Utils_update(
-						transactionView,
-						{transaction: newTransaction});
-					var newTransactionState = _Utils_update(
-						transactionState,
-						{
-							transactionView: $elm$core$Maybe$Just(newTransactionView)
-						});
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{transactionState: newTransactionState}),
-						$elm$core$Platform$Cmd$none);
-				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				}
+				var transactionState = model.transactionState;
+				var transactionView = transactionState.transactionView;
+				var transaction = transactionView.transaction;
+				var newTransaction = _Utils_update(
+					transaction,
+					{priceIsCustom: !transaction.priceIsCustom});
+				var newTransactionView = _Utils_update(
+					transactionView,
+					{transaction: newTransaction});
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{transactionView: newTransactionView});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
 			case 'ChangeCustomPrice':
 				var customPrice = msg.a;
-				var _v11 = model.transactionState.transactionView;
-				if (_v11.$ === 'Just') {
-					var tView = _v11.a;
-					var transactionView = tView;
+				var transactionState = model.transactionState;
+				var transactionView = transactionState.transactionView;
+				var transaction = transactionView.transaction;
+				var newTransaction = _Utils_update(
+					transaction,
+					{
+						customPrice: A2(
+							$elm$core$Maybe$withDefault,
+							0,
+							$elm$core$String$toInt(customPrice))
+					});
+				var newTransactionView = _Utils_update(
+					transactionView,
+					{transaction: newTransaction});
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{transactionView: newTransactionView});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
+			case 'SearchItem':
+				var itemName = msg.a;
+				return _Utils_Tuple2(
+					model,
+					A5(
+						$author$project$Main$sendRequest,
+						model.baseUrl,
+						'GET',
+						'/itemsearch?name=' + itemName,
+						$elm$http$Http$emptyBody,
+						A2(
+							$elm$http$Http$expectJson,
+							$author$project$Main$GotSearchedItems,
+							$elm$json$Json$Decode$list($author$project$Main$itemStockViewDecoder))));
+			case 'GotSearchedItems':
+				var res = msg.a;
+				if (res.$ === 'Ok') {
+					var items = res.a;
 					var transactionState = model.transactionState;
-					var transaction = transactionView.transaction;
-					var newTransaction = _Utils_update(
-						transaction,
-						{
-							customPrice: A2(
-								$elm$core$Maybe$withDefault,
-								0,
-								$elm$core$String$toInt(customPrice))
-						});
-					var newTransactionView = _Utils_update(
-						transactionView,
-						{transaction: newTransaction});
 					var newTransactionState = _Utils_update(
 						transactionState,
-						{
-							transactionView: $elm$core$Maybe$Just(newTransactionView)
-						});
+						{foundItems: items});
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -7979,6 +8001,55 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+			case 'ChangeItemTransactionFormQty':
+				var qtyString = msg.a;
+				var transactionState = model.transactionState;
+				var qty = function () {
+					var _v11 = $elm$core$String$toInt(qtyString);
+					if (_v11.$ === 'Just') {
+						var q = _v11.a;
+						return q;
+					} else {
+						return 0;
+					}
+				}();
+				var itemTransactionForm = transactionState.itemTransactionForm;
+				var newItemTransactionForm = _Utils_update(
+					itemTransactionForm,
+					{qty: qty});
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{itemTransactionForm: newItemTransactionForm});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
+			case 'InputSearchByItem':
+				var searchInput = msg.a;
+				var transactionState = model.transactionState;
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{searchByItem: searchInput});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
+			case 'SelectItemToAdd':
+				var item = msg.a;
+				var transactionState = model.transactionState;
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{
+						foundItems: _List_Nil,
+						selectedItem: $elm$core$Maybe$Just(item)
+					});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
 			case 'InputSearchItem':
 				var searchInput = msg.a;
 				var itemState = model.itemState;
@@ -11180,7 +11251,7 @@ var $author$project$Main$projectPage = function (model) {
 							[
 								$elm$html$Html$text('Add')
 							])),
-						_Utils_eq(model.projectState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : $elm$html$Html$text('Load complete.')
+						_Utils_eq(model.projectState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -11191,33 +11262,173 @@ var $author$project$Main$projectPage = function (model) {
 var $author$project$Main$ChangeCustomPrice = function (a) {
 	return {$: 'ChangeCustomPrice', a: a};
 };
+var $author$project$Main$ChangeItemTransactionFormQty = function (a) {
+	return {$: 'ChangeItemTransactionFormQty', a: a};
+};
 var $author$project$Main$CheckPriceIsCustom = {$: 'CheckPriceIsCustom'};
+var $author$project$Main$SearchItem = function (a) {
+	return {$: 'SearchItem', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$renderCustomItem = function (_v0) {
+	var itemFn = _v0.a.itemFn;
+	var options = _v0.a.options;
+	var children = _v0.a.children;
+	return A2(
+		itemFn,
+		$rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$itemAttributes(
+			A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$applyModifier, $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$defaultOptions, options)),
+		children);
+};
+var $rundis$elm_bootstrap$Bootstrap$ListGroup$custom = function (items) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('list-group')
+			]),
+		A2($elm$core$List$map, $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$renderCustomItem, items));
+};
+var $author$project$Main$SelectItemToAdd = function (a) {
+	return {$: 'SelectItemToAdd', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$Attrs = function (a) {
+	return {$: 'Attrs', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$ListGroup$attrs = function (attrs_) {
+	return $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$Attrs(attrs_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$Action = {$: 'Action'};
+var $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$CustomItem = function (a) {
+	return {$: 'CustomItem', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$ListGroup$button = F2(
+	function (options, children) {
+		return $rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$CustomItem(
+			{
+				children: children,
+				itemFn: $elm$html$Html$button,
+				options: A2(
+					$elm$core$List$cons,
+					$rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$Action,
+					_Utils_ap(
+						options,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Internal$ListGroup$Attrs(
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$type_('button')
+									]))
+							])))
+			});
+	});
+var $author$project$Main$foundItemCard = function (itemStockView) {
+	var item = function () {
+		var _v0 = itemStockView.item;
+		if (_v0.$ === 'Just') {
+			var i = _v0.a;
+			return i;
+		} else {
+			return $author$project$Main$initialItem;
+		}
+	}();
+	return A2(
+		$rundis$elm_bootstrap$Bootstrap$ListGroup$button,
+		_List_fromArray(
+			[
+				$rundis$elm_bootstrap$Bootstrap$ListGroup$attrs(
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick(
+						$author$project$Main$SelectItemToAdd(item))
+					]))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(item.name),
+						A2(
+						$elm$html$Html$b,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								': ' + ($elm$core$String$fromInt(itemStockView.inStock) + ' in stock'))
+							]))
+					]))
+			]));
+};
 var $elm$html$Html$h4 = _VirtualDom_node('h4');
-var $author$project$Main$initialTransaction = {cashier: '', createdAt: '', customPrice: 0, id: 0, priceIsCustom: false, projectId: 0, uid: '', updatedAt: ''};
-var $author$project$Main$initialTransactionView = {itemTransactions: _List_Nil, totalPrice: 0, transaction: $author$project$Main$initialTransaction};
-var $author$project$Main$transactionDetail = F2(
+var $author$project$Main$itemTransactionCard = function (itemTransactionView) {
+	return A2(
+		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('d-flex justify-content-between')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						itemTransactionView.item.name + (' x' + $elm$core$String$fromInt(itemTransactionView.itemTransaction.qty))),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Button$button,
+						_List_fromArray(
+							[$rundis$elm_bootstrap$Bootstrap$Button$danger, $rundis$elm_bootstrap$Bootstrap$Button$small]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h4,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'Rp' + A2($cuducos$elm_format_number$FormatNumber$format, $cuducos$elm_format_number$FormatNumber$Locales$usLocale, itemTransactionView.item.price * itemTransactionView.itemTransaction.qty))
+							]))
+					]))
+			]));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Number = {$: 'Number'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$number = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Number);
+var $author$project$Main$transactionDetailMainPage = F2(
 	function (model, transactionId) {
-		var transactionView = function () {
-			var _v2 = model.transactionState.transactionView;
-			if (_v2.$ === 'Just') {
-				var tView = _v2.a;
-				return tView;
-			} else {
-				return $author$project$Main$initialTransactionView;
-			}
-		}();
+		var transactionView = model.transactionState.transactionView;
 		var transactionType = function () {
-			var _v1 = $elm$core$String$toInt(transactionId);
-			if (_v1.$ === 'Just') {
+			var _v2 = $elm$core$String$toInt(transactionId);
+			if (_v2.$ === 'Just') {
 				return 'Edit';
 			} else {
 				return 'Add';
 			}
 		}();
+		var totalPrice = A3(
+			$elm$core$List$foldl,
+			F2(
+				function (itemTransactionView, acc) {
+					return acc + (itemTransactionView.item.price * itemTransactionView.itemTransaction.qty);
+				}),
+			0,
+			model.transactionState.transactionView.itemTransactions);
 		var projectName = function () {
-			var _v0 = model.transactionState.projectTransactionsView.project;
-			if (_v0.$ === 'Just') {
-				var project = _v0.a;
+			var _v1 = model.transactionState.projectTransactionsView.project;
+			if (_v1.$ === 'Just') {
+				var project = _v1.a;
 				return project.name;
 			} else {
 				return '';
@@ -11225,10 +11436,12 @@ var $author$project$Main$transactionDetail = F2(
 		}();
 		return A2(
 			$elm$html$Html$div,
-			_List_Nil,
 			_List_fromArray(
 				[
-					$author$project$Main$navbar(model),
+					$elm$html$Html$Attributes$class('mx-1')
+				]),
+			_List_fromArray(
+				[
 					A2(
 					$elm$html$Html$div,
 					_List_Nil,
@@ -11319,7 +11532,7 @@ var $author$project$Main$transactionDetail = F2(
 										[
 											$elm$html$Html$text('Custom Price')
 										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+									$rundis$elm_bootstrap$Bootstrap$Form$Input$number(
 									_List_fromArray(
 										[
 											$rundis$elm_bootstrap$Bootstrap$Form$Input$id('customPrice'),
@@ -11332,13 +11545,292 @@ var $author$project$Main$transactionDetail = F2(
 						])),
 					A2(
 					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('dropdown-divider')
+						]),
+					_List_Nil),
+					A2(
+					$elm$html$Html$div,
 					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('TODO: Item selection forms here')
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Form$group,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$label,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Select Item')
+										])),
+									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+									_List_fromArray(
+										[
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Search Item...'),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$SearchItem)
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$rundis$elm_bootstrap$Bootstrap$ListGroup$custom(
+							A2($elm$core$List$map, $author$project$Main$foundItemCard, model.transactionState.foundItems))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Form$group,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$label,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Qty')
+										])),
+									$rundis$elm_bootstrap$Bootstrap$Form$Input$number(
+									_List_fromArray(
+										[
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+											$elm$core$String$fromInt(model.transactionState.itemTransactionForm.qty)),
+											$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$ChangeItemTransactionFormQty)
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'Selected: ' + function () {
+										var _v0 = model.transactionState.selectedItem;
+										if (_v0.$ === 'Just') {
+											var item = _v0.a;
+											return item.name + (' x' + $elm$core$String$fromInt(model.transactionState.itemTransactionForm.qty));
+										} else {
+											return 'None selected';
+										}
+									}())
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$b,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('')
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$rundis$elm_bootstrap$Bootstrap$Button$button,
+							_List_fromArray(
+								[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Insert to List ')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('dropdown-divider')
+						]),
+					_List_Nil),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h4,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Selected items:')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$rundis$elm_bootstrap$Bootstrap$ListGroup$ul(
+							A2($elm$core$List$map, $author$project$Main$itemTransactionCard, model.transactionState.transactionView.itemTransactions))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('dropdown-divider')
+						]),
+					_List_Nil),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h4,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Grand Total:')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h5,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-info')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'Custom price: ' + (model.transactionState.transactionView.transaction.priceIsCustom ? '(Yes)' : '(No)'))
+								])),
+							A2(
+							$elm$html$Html$h4,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-success')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'Rp' + A2($cuducos$elm_format_number$FormatNumber$format, $cuducos$elm_format_number$FormatNumber$Locales$usLocale, model.transactionState.transactionView.transaction.customPrice))
+								])),
+							A2(
+							$elm$html$Html$h5,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-info')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Original price:')
+								])),
+							A2(
+							$elm$html$Html$h4,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-success')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'Rp' + A2($cuducos$elm_format_number$FormatNumber$format, $cuducos$elm_format_number$FormatNumber$Locales$usLocale, totalPrice))
+								])),
+							A2(
+							$elm$html$Html$h5,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-info')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Final price:')
+								])),
+							A2(
+							$elm$html$Html$h4,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-success')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'Rp' + A2(
+										$cuducos$elm_format_number$FormatNumber$format,
+										$cuducos$elm_format_number$FormatNumber$Locales$usLocale,
+										model.transactionState.transactionView.transaction.priceIsCustom ? model.transactionState.transactionView.transaction.customPrice : totalPrice))
+								]))
 						]))
 				]));
 	});
+var $author$project$Main$transactionDetail = F2(
+	function (model, transactionId) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$author$project$Main$navbar(model),
+					function () {
+					var _v0 = model.transactionState.projectTransactionsView.project;
+					if (_v0.$ === 'Just') {
+						return A2($author$project$Main$transactionDetailMainPage, model, transactionId);
+					} else {
+						return A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$a,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$href('/#/transactions')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$rundis$elm_bootstrap$Bootstrap$Button$button,
+											_List_fromArray(
+												[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Back')
+												]))
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('No project selected.')
+										]))
+								]));
+					}
+				}()
+				]));
+	});
+var $author$project$Main$InputSearchByItem = function (a) {
+	return {$: 'InputSearchByItem', a: a};
+};
 var $author$project$Main$SelectProject = function (a) {
 	return {$: 'SelectProject', a: a};
 };
@@ -11564,6 +12056,18 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$dropdown = F2(
 					A2(buttonFn, toggleMsg, state),
 					A3($rundis$elm_bootstrap$Bootstrap$Dropdown$dropdownMenu, state, config, items)
 				]));
+	});
+var $author$project$Main$filterByItemTransactionName = F2(
+	function (name, transactionView) {
+		var names = A3(
+			$elm$core$List$foldl,
+			F2(
+				function (itemTransaction, acc) {
+					return _Utils_ap(acc, itemTransaction.item.name);
+				}),
+			'',
+			transactionView.itemTransactions);
+		return A2($elm$core$String$contains, name, names);
 	});
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$DropdownToggle = function (a) {
 	return {$: 'DropdownToggle', a: a};
@@ -11811,7 +12315,10 @@ var $author$project$Main$transactionCard = function (transactionView) {
 							[
 								A2(
 								$elm$html$Html$h4,
-								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-success')
+									]),
 								_List_fromArray(
 									[
 										$elm$html$Html$text(
@@ -11891,7 +12398,7 @@ var $author$project$Main$transactionPage = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('m-2')
+						$elm$html$Html$Attributes$class('d-flex justify-content-between m-2')
 					]),
 				_List_fromArray(
 					[
@@ -11925,20 +12432,19 @@ var $author$project$Main$transactionPage = function (model) {
 										$elm$html$Html$text(model.transactionState.selectedProject)
 									])),
 							toggleMsg: $author$project$Main$ToggleProject
-						})
+						}),
+						addButton
 					])),
 				A2(
 				$elm$html$Html$div,
-				_List_Nil,
 				_List_fromArray(
 					[
-						_Utils_eq(model.transactionState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : $elm$html$Html$text('Load complete')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
+						$elm$html$Html$Attributes$class('d-flex justify-content-between')
+					]),
 				_List_fromArray(
-					[addButton])),
+					[
+						_Utils_eq(model.transactionState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
+					])),
 				A2(
 				$elm$html$Html$div,
 				_List_Nil,
@@ -11961,8 +12467,27 @@ var $author$project$Main$transactionPage = function (model) {
 											[
 												$elm$html$Html$text(project.name)
 											])),
+										A2(
+										$elm$html$Html$div,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Search by item...'),
+														$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$InputSearchByItem),
+														$rundis$elm_bootstrap$Bootstrap$Form$Input$value(model.transactionState.searchByItem)
+													]))
+											])),
 										$rundis$elm_bootstrap$Bootstrap$ListGroup$ul(
-										A2($elm$core$List$map, $author$project$Main$transactionCard, projectTransactionsView.transactions))
+										A2(
+											$elm$core$List$map,
+											$author$project$Main$transactionCard,
+											A2(
+												$elm$core$List$filter,
+												$author$project$Main$filterByItemTransactionName(model.transactionState.searchByItem),
+												projectTransactionsView.transactions)))
 									]));
 						} else {
 							return A2(

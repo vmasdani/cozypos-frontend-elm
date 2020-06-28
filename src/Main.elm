@@ -103,7 +103,11 @@ type alias TransactionModel =
   , projectsDropdown : Dropdown.State
   , projectTransactionsView : ProjectTransactionsView
   , selectedProject : String
-  , transactionView : Maybe TransactionView
+  , transactionView : TransactionView
+  , foundItems : List ItemStockView
+  , itemTransactionForm : ItemTransaction
+  , selectedItem : Maybe Item
+  , searchByItem : String
   }
 
 initialTransactionModel : TransactionModel
@@ -113,7 +117,11 @@ initialTransactionModel =
   , projectsDropdown = Dropdown.initialState
   , projectTransactionsView = initialProjectTransationsView
   , selectedProject = "Select Project"
-  , transactionView = Nothing
+  , transactionView = initialTransactionView
+  , foundItems = []
+  , itemTransactionForm = initialItemTransaction
+  , selectedItem = Nothing
+  , searchByItem = ""
   }
 
 type RequestStatus 
@@ -298,6 +306,17 @@ type alias ItemTransaction =
   , qty: Int
   , createdAt : String
   , updatedAt : String
+  }
+
+initialItemTransaction : ItemTransaction
+initialItemTransaction =
+  { id = 0
+  , uid = ""
+  , itemId = 0
+  , transactionId = 0
+  , qty = 0
+  , createdAt = ""
+  , updatedAt = ""
   }
 
 itemTransactionDecoder : Decoder ItemTransaction
@@ -558,6 +577,11 @@ type Msg
   | GotTransactionView (Result Http.Error TransactionView)
   | CheckPriceIsCustom
   | ChangeCustomPrice String
+  | SearchItem String
+  | GotSearchedItems (Result Http.Error (List ItemStockView))
+  | ChangeItemTransactionFormQty String
+  | InputSearchByItem String
+  | SelectItemToAdd Item
   -- Item
   | InputSearchItem String
   | ChangeItemName String
@@ -774,7 +798,7 @@ update msg model =
             newTransactionState = 
               { transactionState 
               | requestStatus = Success
-              , transactionView = Just transactionView 
+              , transactionView = transactionView 
               }
           in
           (Debug.log <| Debug.toString transactionView)
@@ -787,38 +811,82 @@ update msg model =
           ( { model | transactionState = newTransactionState }, Cmd.none )
 
     CheckPriceIsCustom ->
-      case model.transactionState.transactionView of
-        Just tView ->
-          let
-            transactionState = model.transactionState
-            transactionView = tView
-            transaction = transactionView.transaction
+      let
+        transactionState = model.transactionState
+        transactionView = transactionState.transactionView
+        transaction = transactionView.transaction
 
-            newTransaction =  { transaction | priceIsCustom = not transaction.priceIsCustom }
-            newTransactionView = { transactionView | transaction = newTransaction }
-            newTransactionState = { transactionState | transactionView = Just newTransactionView  }
-          in
-            ( { model | transactionState = newTransactionState }, Cmd.none )
-
-        Nothing ->
-          ( model, Cmd.none )
+        newTransaction =  { transaction | priceIsCustom = not transaction.priceIsCustom }
+        newTransactionView = { transactionView | transaction = newTransaction }
+        newTransactionState = { transactionState | transactionView = newTransactionView  }
+      in
+        ( { model | transactionState = newTransactionState }, Cmd.none )
 
     ChangeCustomPrice customPrice ->
-      case model.transactionState.transactionView of
-        Just tView ->
+      let
+        transactionState = model.transactionState
+        transactionView = transactionState.transactionView
+        transaction = transactionView.transaction
+
+        newTransaction = { transaction | customPrice = Maybe.withDefault 0 <| String.toInt customPrice }
+        newTransactionView = { transactionView | transaction = newTransaction }
+        newTransactionState = { transactionState | transactionView = newTransactionView }
+      in
+        ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    SearchItem itemName ->
+      ( model
+      , sendRequest 
+          model.baseUrl
+          "GET"
+          ("/itemsearch?name=" ++ itemName)
+          Http.emptyBody
+          (Http.expectJson GotSearchedItems (Decode.list itemStockViewDecoder))
+      )
+
+    GotSearchedItems res ->
+      case res of
+        Ok items ->
           let
             transactionState = model.transactionState
-            transactionView = tView
-            transaction = transactionView.transaction
-
-            newTransaction = { transaction | customPrice = Maybe.withDefault 0 <| String.toInt customPrice }
-            newTransactionView = { transactionView | transaction = newTransaction }
-            newTransactionState = { transactionState | transactionView = Just newTransactionView }
+            newTransactionState = { transactionState | foundItems = items }
           in
-            ( { model | transactionState = newTransactionState }, Cmd.none )
-
-        Nothing ->
+          ( { model | transactionState = newTransactionState }, Cmd.none )
+        
+        _ ->
           ( model, Cmd.none )
+
+    ChangeItemTransactionFormQty qtyString ->
+      let
+        qty =
+          case String.toInt qtyString of
+            Just q ->
+              q
+
+            _ ->
+              0
+        
+        transactionState = model.transactionState
+        itemTransactionForm = transactionState.itemTransactionForm
+        
+        newItemTransactionForm = { itemTransactionForm | qty = qty }
+        newTransactionState = { transactionState | itemTransactionForm = newItemTransactionForm }
+      in
+      ( { model | transactionState = newTransactionState } , Cmd.none)
+
+    InputSearchByItem searchInput ->
+      let
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | searchByItem = searchInput }
+      in
+        ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    SelectItemToAdd item ->
+      let
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | selectedItem = Just item, foundItems = [] }
+      in
+      ( { model | transactionState = newTransactionState }, Cmd.none )
 
     InputSearchItem searchInput ->
       let
@@ -1013,10 +1081,12 @@ transactionPage model =
       
         _ ->
           div [] []
+
+    
   in
   div []
     [ navbar model
-    , div [ class "m-2" ]
+    , div [ class "d-flex justify-content-between m-2" ]
         [ Dropdown.dropdown
             model.transactionState.projectsDropdown
               { options = []
@@ -1026,15 +1096,15 @@ transactionPage model =
               , items =
                   List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project) ] [ text project.name ] ) model.transactionState.projects
               }
+        , addButton
         ]
-    , div [] 
+    , div [ class "d-flex justify-content-between" ] 
         [ if model.transactionState.requestStatus == Loading then
             Spinner.spinner [] []
           else  
             -- text <| Debug.toString model.transactionState.projects 
-            text "Load complete"
+            span [] []
         ]
-    , div [] [ addButton ]
     , div []
         [ let
             projectTransactionsView = model.transactionState.projectTransactionsView
@@ -1043,7 +1113,18 @@ transactionPage model =
             Just project ->
               div []
                 [ h3 [] [ text project.name ]
-                , ListGroup.ul (List.map transactionCard projectTransactionsView.transactions )
+                , div []
+                    [ Input.text
+                        [ Input.placeholder "Search by item..."
+                        , Input.onInput InputSearchByItem
+                        , Input.value model.transactionState.searchByItem
+                        ]
+                    ]
+                , ListGroup.ul
+                    <| List.map transactionCard 
+                    <| List.filter 
+                        (filterByItemTransactionName model.transactionState.searchByItem) 
+                        projectTransactionsView.transactions
                 ]
 
             Nothing ->
@@ -1074,7 +1155,7 @@ transactionCard transactionView =
               ] 
           ]
       , div [ class "d-flex justify-content-between align-items-center" ] 
-          [ h4 [] 
+          [ h4 [ class "text-success" ] 
               [ text <|
                   "Rp" ++ format usLocale
                     ( if transactionView.transaction.priceIsCustom then 
@@ -1094,6 +1175,22 @@ transactionCard transactionView =
 
 transactionDetail : Model -> String -> Html Msg
 transactionDetail model transactionId =
+  div [] 
+    [ navbar model
+    , case model.transactionState.projectTransactionsView.project of
+        Just _ ->
+          transactionDetailMainPage model transactionId
+
+        _ ->
+          div []
+            [ a [ href "/#/transactions" ]
+              [ Button.button [ Button.secondary ] [ text "Back" ] ]
+            , div [] [ text "No project selected." ]
+            ]
+    ]
+
+transactionDetailMainPage : Model -> String -> Html Msg
+transactionDetailMainPage model transactionId =
   let
     projectName =
       case model.transactionState.projectTransactionsView.project of
@@ -1111,18 +1208,11 @@ transactionDetail model transactionId =
         _ ->
           "Add"
 
-    transactionView =
-      case model.transactionState.transactionView of
-        Just tView ->
-          tView
-
-        Nothing ->
-          initialTransactionView
-    
+    transactionView = model.transactionState.transactionView
+    totalPrice = List.foldl (\itemTransactionView acc -> acc + itemTransactionView.item.price * itemTransactionView.itemTransaction.qty) 0 model.transactionState.transactionView.itemTransactions
   in
-  div [] 
-    [ navbar model
-    , div []
+  div [ class "mx-1" ]
+    [ div []
         [ a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ]
         , Button.button [ Button.primary, Button.attrs [ class "mx-1" ] ] [ text "Save" ]
         ]
@@ -1137,7 +1227,7 @@ transactionDetail model transactionId =
         , if transactionView.transaction.priceIsCustom then
             Form.group [ Form.attrs [ class "mx-1" ] ]
               [ Form.label [ for "customPrice" ] [ text "Custom Price" ]
-              , Input.text 
+              , Input.number 
                   [ Input.id "customPrice"
                   , Input.placeholder "Custom Price..." 
                   , Input.value <| String.fromInt transactionView.transaction.customPrice
@@ -1147,10 +1237,105 @@ transactionDetail model transactionId =
           else
             span [] []
         ]
+    , div [ class "dropdown-divider" ] []
     , div []
-        [ text "TODO: Item selection forms here"
+        [ Form.group []
+            [ Form.label [ ] [ text "Select Item" ]
+            , Input.text
+                [ Input.placeholder "Search Item..."
+                , Input.onInput SearchItem
+                ]
+            ]
+        ]
+    , div []
+        [ ListGroup.custom (List.map foundItemCard model.transactionState.foundItems) ]
+    , div []
+        [ Form.group []
+            [ Form.label [] [ text "Qty"]
+            , Input.number
+                [ Input.value (String.fromInt model.transactionState.itemTransactionForm.qty)
+                , Input.onInput ChangeItemTransactionFormQty
+                ]
+            ]
+        ]
+    , div [] 
+        [ div [] 
+            [ text 
+                <| "Selected: "
+                ++  ( case model.transactionState.selectedItem of
+                        Just item ->
+                          (item.name ++ " x" ++ String.fromInt model.transactionState.itemTransactionForm.qty)
+                        
+                        _ ->
+                          "None selected"
+                    ) 
+                ]
+        , div [] [ b [] [ text "" ] ]
+        ]
+    , div []
+        [ Button.button [ Button.secondary ] [ text "Insert to List " ]
+        ]
+    , div [ class "dropdown-divider" ] []
+    , div [] [ h4 [] [ text "Selected items:" ]]
+    , div []
+        [ ListGroup.ul (List.map itemTransactionCard model.transactionState.transactionView.itemTransactions) 
+        ]
+    , div [ class "dropdown-divider" ] []
+    , div [] [ h4 [] [ text "Grand Total:" ] ]
+    , div []
+        [ h5 [ class "text-info" ] [ text <| "Custom price: " ++ if model.transactionState.transactionView.transaction.priceIsCustom then "(Yes)" else "(No)" ]
+        , h4 [ class "text-success" ] 
+            [ text
+                <| "Rp"
+                ++ 
+                format usLocale (toFloat model.transactionState.transactionView.transaction.customPrice) 
+            ]
+        , h5 [ class "text-info" ] [ text "Original price:" ]
+        , h4 [ class "text-success" ]
+            [ text <| "Rp" ++ format usLocale (toFloat totalPrice) ]
+        , h5 [ class "text-info" ] [ text "Final price:" ]
+        , h4 [ class "text-success" ] 
+            [ text <|
+                "Rp" ++
+                format usLocale 
+                  (if model.transactionState.transactionView.transaction.priceIsCustom then
+                    toFloat model.transactionState.transactionView.transaction.customPrice
+                  else
+                    toFloat totalPrice
+                  )
+            ]
         ]
     ]
+
+itemTransactionCard : ItemTransactionView -> ListGroup.Item Msg 
+itemTransactionCard itemTransactionView =
+  ListGroup.li [] 
+    [ div [ class "d-flex justify-content-between" ]
+        [ text <| itemTransactionView.item.name ++ " x" ++ String.fromInt itemTransactionView.itemTransaction.qty 
+        , Button.button [ Button.danger, Button.small ] [ text "Delete" ]
+        ]
+    , div []
+        [ h4 [] [ text <| "Rp" ++ format usLocale (toFloat <| itemTransactionView.item.price * itemTransactionView.itemTransaction.qty) ] ] 
+    ]
+
+foundItemCard : ItemStockView -> ListGroup.CustomItem Msg
+foundItemCard itemStockView =
+  let
+    item =
+      case itemStockView.item of
+        Just i ->
+          i
+
+        _ ->
+          initialItem
+  in
+  ListGroup.button [ ListGroup.attrs [ onClick (SelectItemToAdd item) ] ]
+    [ div []
+        [ text <| item.name
+        , b [] [ text <| ": " ++ String.fromInt itemStockView.inStock ++ " in stock" ]
+        ]
+    ]
+
 
 itemPage : Model -> Html Msg
 itemPage model =
@@ -1316,7 +1501,7 @@ projectPage model =
       , if model.projectState.requestStatus == Loading then
           Spinner.spinner [] []
         else
-          text "Load complete."
+          span [] []
       ] 
   , div []
       (List.map projectCard model.projectState.projects.projects)
@@ -1364,6 +1549,12 @@ projectDetailPage model projectId =
 
 -- HELPERS
 
+filterByItemTransactionName : String -> TransactionView -> Bool
+filterByItemTransactionName name transactionView =
+  let
+    names = List.foldl (\itemTransaction acc -> acc ++ itemTransaction.item.name) "" transactionView.itemTransactions
+  in
+    String.contains name names
 sendRequest : String -> String -> String -> Http.Body -> Http.Expect msg -> Cmd msg
 sendRequest baseUrl method target body expect =
   Http.request
@@ -1446,14 +1637,19 @@ fetchByUrl model =
         transactionState = model.transactionState
         newTransactionState = { transactionState | requestStatus = Loading }
       in
-      ( { model | transactionState = newTransactionState }
-      , sendRequest
-          model.baseUrl
-          "GET"
-          ("/transactions/view/" ++ transactionId)
-          Http.emptyBody
-          (Http.expectJson GotTransactionView transactionViewDecoder)
-      )
+        case String.toInt transactionId of
+          Just _ ->
+            ( { model | transactionState = newTransactionState }
+            , sendRequest
+                model.baseUrl
+                "GET"
+                ("/transactions/view/" ++ transactionId)
+                Http.emptyBody
+                (Http.expectJson GotTransactionView transactionViewDecoder)
+            )
+
+          _ ->
+            ( model, Cmd.none )
 
     ItemPage ->
       let
