@@ -6951,6 +6951,9 @@ var $author$project$Main$GotSearchedItems = function (a) {
 	return {$: 'GotSearchedItems', a: a};
 };
 var $author$project$Main$Loading = {$: 'Loading'};
+var $author$project$Main$SavedItem = function (a) {
+	return {$: 'SavedItem', a: a};
+};
 var $author$project$Main$SavedProject = function (a) {
 	return {$: 'SavedProject', a: a};
 };
@@ -7506,33 +7509,37 @@ var $author$project$Main$fetchByUrl = function (model) {
 		case 'ItemDetail':
 			var itemId = page.a;
 			var itemState = model.itemState;
-			var newItemState = _Utils_update(
-				itemState,
-				{requestStatus: $author$project$Main$Loading});
-			return _Utils_Tuple2(
-				_Utils_update(
-					model,
-					{itemState: newItemState}),
-				A5(
-					$author$project$Main$sendRequest,
-					model.baseUrl,
-					'GET',
-					'/items/' + itemId,
-					$elm$http$Http$emptyBody,
-					A2($elm$http$Http$expectJson, $author$project$Main$GotItem, $author$project$Main$itemDecoder)));
+			var _v3 = $elm$core$String$toInt(itemId);
+			if (_v3.$ === 'Just') {
+				var newItemState = _Utils_update(
+					itemState,
+					{requestStatus: $author$project$Main$Loading});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{itemState: newItemState}),
+					A5(
+						$author$project$Main$sendRequest,
+						model.baseUrl,
+						'GET',
+						'/items/' + itemId,
+						$elm$http$Http$emptyBody,
+						A2($elm$http$Http$expectJson, $author$project$Main$GotItem, $author$project$Main$itemDecoder)));
+			} else {
+				var newItemState = _Utils_update(
+					itemState,
+					{item: $author$project$Main$initialItem});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{itemState: newItemState}),
+					$elm$core$Platform$Cmd$none);
+			}
 		default:
 			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 	}
 };
-var $elm$http$Http$jsonBody = function (value) {
-	return A2(
-		_Http_pair,
-		'application/json',
-		A2($elm$json$Json$Encode$encode, 0, value));
-};
-var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$core$Debug$log = _Debug_log;
-var $elm$core$Basics$not = _Basics_not;
+var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -7548,6 +7555,54 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			pairs));
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$itemEncoder = function (item) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$int(item.id)),
+				_Utils_Tuple2(
+				'uid',
+				$elm$json$Json$Encode$string(item.uid)),
+				_Utils_Tuple2(
+				'name',
+				$elm$json$Json$Encode$string(item.name)),
+				_Utils_Tuple2(
+				'description',
+				$elm$json$Json$Encode$string(item.description)),
+				_Utils_Tuple2(
+				'price',
+				$elm$json$Json$Encode$int(item.price)),
+				_Utils_Tuple2(
+				'manufacturingPrice',
+				$elm$json$Json$Encode$int(item.manufacturingPrice))
+			]));
+};
+var $author$project$Main$itemPostBodyEncoder = function (itemPostBody) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'item',
+				$author$project$Main$itemEncoder(itemPostBody.item)),
+				_Utils_Tuple2(
+				'withInitialStock',
+				$elm$json$Json$Encode$bool(itemPostBody.withInitialStock)),
+				_Utils_Tuple2(
+				'initialStockQty',
+				$elm$json$Json$Encode$int(itemPostBody.initialStockQty))
+			]));
+};
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
+var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $elm$core$Debug$log = _Debug_log;
+var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$projectEncoder = function (project) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -8177,17 +8232,47 @@ var $author$project$Main$update = F2(
 							{itemState: newItemState}),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'SaveItem':
 				var itemState = model.itemState;
 				var newItemState = _Utils_update(
 					itemState,
 					{requestStatus: $author$project$Main$Loading});
+				var itemPostBody = {initialStockQty: model.itemState.initialStock, item: model.itemState.item, withInitialStock: model.itemState.addInitialStock};
 				return $elm$core$Debug$log('Save item!')(
 					_Utils_Tuple2(
 						_Utils_update(
 							model,
 							{itemState: newItemState}),
-						$elm$core$Platform$Cmd$none));
+						A5(
+							$author$project$Main$sendRequest,
+							model.baseUrl,
+							'POST',
+							'/itemsave',
+							$elm$http$Http$jsonBody(
+								$author$project$Main$itemPostBodyEncoder(itemPostBody)),
+							$elm$http$Http$expectString($author$project$Main$SavedItem))));
+			default:
+				var res = msg.a;
+				var itemState = model.itemState;
+				if (res.$ === 'Ok') {
+					var newItemState = _Utils_update(
+						itemState,
+						{requestStatus: $author$project$Main$Success});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{itemState: newItemState}),
+						A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/#/items'));
+				} else {
+					var newItemState = _Utils_update(
+						itemState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{itemState: newItemState}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $elm$html$Html$b = _VirtualDom_node('b');
@@ -8304,7 +8389,6 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
 var $rundis$elm_bootstrap$Bootstrap$Internal$Button$defaultOptions = {attributes: _List_Nil, block: false, coloring: $elm$core$Maybe$Nothing, disabled: false, size: $elm$core$Maybe$Nothing};
-var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
 		return A2(
@@ -11198,22 +11282,60 @@ var $rundis$elm_bootstrap$Bootstrap$Button$linkButton = F2(
 				$rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes(options)),
 			children);
 	});
+var $elm$html$Html$h4 = _VirtualDom_node('h4');
 var $author$project$Main$projectCard = function (projectView) {
 	return A2(
-		$elm$html$Html$div,
+		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
 		_List_Nil,
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$a,
+				$elm$html$Html$div,
+				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$href(
-						'/#/projects/' + $elm$core$String$fromInt(projectView.project.id))
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(projectView.project.name)
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('d-flex justify-content-between')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href(
+										'/#/projects/' + $elm$core$String$fromInt(projectView.project.id))
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$h4,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text(projectView.project.name)
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										'Date: ' + A3($elm$core$String$slice, 0, 10, projectView.project.startDate))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'Income: Rp' + A2($cuducos$elm_format_number$FormatNumber$format, $cuducos$elm_format_number$FormatNumber$Locales$usLocale, projectView.income))
+							]))
 					]))
 			]));
 };
@@ -11226,16 +11348,19 @@ var $author$project$Main$projectPage = function (model) {
 				$author$project$Main$navbar(model),
 				A2(
 				$elm$html$Html$div,
-				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('This is the project page')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
+						$elm$html$Html$Attributes$class('d-flex justify-content-between m-3')
+					]),
 				_List_fromArray(
 					[
+						A2(
+						$elm$html$Html$h3,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Projects')
+							])),
 						A2(
 						$rundis$elm_bootstrap$Bootstrap$Button$linkButton,
 						_List_fromArray(
@@ -11250,13 +11375,23 @@ var $author$project$Main$projectPage = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Add')
-							])),
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
 						_Utils_eq(model.projectState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
 					])),
 				A2(
 				$elm$html$Html$div,
 				_List_Nil,
-				A2($elm$core$List$map, $author$project$Main$projectCard, model.projectState.projects.projects))
+				_List_fromArray(
+					[
+						$rundis$elm_bootstrap$Bootstrap$ListGroup$ul(
+						A2($elm$core$List$map, $author$project$Main$projectCard, model.projectState.projects.projects))
+					]))
 			]));
 };
 var $author$project$Main$ChangeCustomPrice = function (a) {
@@ -11362,7 +11497,6 @@ var $author$project$Main$foundItemCard = function (itemStockView) {
 					]))
 			]));
 };
-var $elm$html$Html$h4 = _VirtualDom_node('h4');
 var $author$project$Main$itemTransactionCard = function (itemTransactionView) {
 	return A2(
 		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
@@ -12494,12 +12628,11 @@ var $author$project$Main$transactionPage = function (model) {
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										A2($elm$html$Html$Attributes$style, 'background-color', 'lightblue'),
 										$elm$html$Html$Attributes$class('my-3')
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text('No projects to show.')
+										$elm$html$Html$text('No project selected.')
 									]));
 						}
 					}()

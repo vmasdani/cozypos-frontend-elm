@@ -495,6 +495,27 @@ transactionPostBodyEncoder transactionPostBody =
     , ( "itemTransactionDeleteIds", (Encode.list Encode.int) transactionPostBody.itemTransactionDeleteIds )
     ]
 
+type alias ItemPostBody =
+  { item : Item
+  , withInitialStock : Bool
+  , initialStockQty : Int
+  }
+
+itemPostBodyDecoder : Decoder ItemPostBody
+itemPostBodyDecoder =
+  Decode.map3 ItemPostBody
+    (field "item" itemDecoder)
+    (field "withInitialStock" Decode.bool)
+    (field "initialStockQty" Decode.int)
+
+itemPostBodyEncoder : ItemPostBody -> Encode.Value
+itemPostBodyEncoder itemPostBody =
+  Encode.object
+    [ ( "item", itemEncoder itemPostBody.item )
+    , ( "withInitialStock", Encode.bool itemPostBody.withInitialStock )
+    , ( "initialStockQty", Encode.int itemPostBody.initialStockQty )
+    ]
+
 init : Flag -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flag url key =
   let
@@ -592,6 +613,7 @@ type Msg
   | ChangeInitialStock String
   | GotItem (Result Http.Error Item)
   | SaveItem
+  | SavedItem (Result Http.Error String)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -971,11 +993,43 @@ update msg model =
 
     SaveItem ->
       let
+        itemPostBody : ItemPostBody
+        itemPostBody =
+          { item = model.itemState.item
+          , withInitialStock = model.itemState.addInitialStock
+          , initialStockQty = model.itemState.initialStock
+          }
+
         itemState = model.itemState
         newItemState = { itemState | requestStatus = Loading }
       in
       (Debug.log "Save item!")
-      ( { model | itemState = newItemState }, Cmd.none )
+      ( { model | itemState = newItemState }
+      , sendRequest 
+          model.baseUrl
+          "POST"
+          "/itemsave"
+          -- (Http.jsonBody <| itemEncoder model.itemState.item)
+          (Http.jsonBody <| itemPostBodyEncoder itemPostBody)
+          (Http.expectString SavedItem)
+      )
+
+    SavedItem res ->
+      let
+        itemState = model.itemState
+      in
+      case res of
+        Ok _ ->
+          let
+            newItemState = { itemState | requestStatus = Success }
+          in  
+          ( { model | itemState = newItemState }, Nav.pushUrl model.key "/#/items" )
+
+        _ ->
+          let
+            newItemState = { itemState | requestStatus = Error }
+          in  
+          ( { model | itemState = newItemState }, Cmd.none )
 
 -- SUBSCRIPTIONS
 
@@ -1128,7 +1182,7 @@ transactionPage model =
                 ]
 
             Nothing ->
-              div [ style "background-color" "lightblue", class "my-3" ] [text "No projects to show."]
+              div [ class "my-3" ] [text "No project selected."]
         ]
     ]
 
@@ -1491,27 +1545,38 @@ projectPage : Model -> Html Msg
 projectPage model =
   div [] 
   [ navbar model 
-  , div [] [ text "This is the project page" ]
-  , div []
-      [ Button.linkButton
+  -- , div [] [ text "This is the project page" ]
+  , div [ class "d-flex justify-content-between m-3" ]
+      [ h3 [] [ text "Projects" ]
+      , Button.linkButton
         [ Button.primary 
         , Button.attrs [ href "/#/projects/new" ]
         ]
         [ text "Add" ]
-      , if model.projectState.requestStatus == Loading then
+      ]
+  , div [] 
+      [ if model.projectState.requestStatus == Loading then
           Spinner.spinner [] []
         else
           span [] []
-      ] 
+      ]
   , div []
-      (List.map projectCard model.projectState.projects.projects)
+      [ ListGroup.ul
+          (List.map projectCard model.projectState.projects.projects)
+      ]
   ]
 
-projectCard : ProjectView -> Html Msg
+projectCard : ProjectView -> ListGroup.Item  Msg
 projectCard projectView =
-  div []
-    [ a [ href ("/#/projects/" ++ String.fromInt projectView.project.id) ] 
-        [ text projectView.project.name ]
+  ListGroup.li []
+    [ div []
+        [ div [ class "d-flex justify-content-between" ]
+            [ a [ href ("/#/projects/" ++ String.fromInt projectView.project.id) ] 
+              [ h4 [] [ text projectView.project.name ] ]
+            , div [] [ text <| "Date: " ++ String.slice 0 10 projectView.project.startDate ]
+            ]
+        , div [] [ text <| "Income: Rp" ++ format usLocale (toFloat projectView.income) ]
+        ]
     ]
 
 
@@ -1668,16 +1733,26 @@ fetchByUrl model =
     ItemDetail itemId ->
       let
         itemState = model.itemState
-        newItemState = { itemState | requestStatus = Loading }
       in
-      ( { model | itemState = newItemState } 
-      , sendRequest
-          model.baseUrl
-          "GET"
-          ("/items/" ++ itemId)
-          Http.emptyBody
-          (Http.expectJson GotItem itemDecoder)
-      )
+        case String.toInt itemId of
+          Just _ ->
+            let
+              newItemState = { itemState | requestStatus = Loading }
+            in
+            ( { model | itemState = newItemState } 
+            , sendRequest
+                model.baseUrl
+                "GET"
+                ("/items/" ++ itemId)
+                Http.emptyBody
+                (Http.expectJson GotItem itemDecoder)
+            )
+
+          _ ->
+            let
+              newItemState = { itemState | item = initialItem } 
+            in
+            ( { model | itemState = newItemState }, Cmd.none )
 
     _ ->
       ( model, Cmd.none )
