@@ -8116,6 +8116,47 @@ var $author$project$Main$update = F2(
 						model,
 						{itemState: newItemState}),
 					$elm$core$Platform$Cmd$none);
+			case 'InsertItemToList':
+				var transactionState = model.transactionState;
+				var transactionView = transactionState.transactionView;
+				var newItemTransactionView = function () {
+					var _v13 = model.transactionState.selectedItem;
+					if (_v13.$ === 'Just') {
+						var item = _v13.a;
+						return $elm$core$Maybe$Just(
+							{
+								item: item,
+								itemTransaction: _Utils_update(
+									$author$project$Main$initialItemTransaction,
+									{qty: model.transactionState.itemTransactionForm.qty})
+							});
+					} else {
+						return $elm$core$Maybe$Nothing;
+					}
+				}();
+				var itemTransactions = transactionView.itemTransactions;
+				var newItemTransactions = function () {
+					if (newItemTransactionView.$ === 'Just') {
+						var itemTransactionView = newItemTransactionView.a;
+						return _Utils_ap(
+							itemTransactions,
+							_List_fromArray(
+								[itemTransactionView]));
+					} else {
+						return itemTransactions;
+					}
+				}();
+				var newTransactionView = _Utils_update(
+					transactionView,
+					{itemTransactions: newItemTransactions});
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{transactionView: newTransactionView});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
 			case 'ChangeItemName':
 				var name = msg.a;
 				var itemState = model.itemState;
@@ -11401,6 +11442,7 @@ var $author$project$Main$ChangeItemTransactionFormQty = function (a) {
 	return {$: 'ChangeItemTransactionFormQty', a: a};
 };
 var $author$project$Main$CheckPriceIsCustom = {$: 'CheckPriceIsCustom'};
+var $author$project$Main$InsertItemToList = {$: 'InsertItemToList'};
 var $author$project$Main$SearchItem = function (a) {
 	return {$: 'SearchItem', a: a};
 };
@@ -11786,7 +11828,10 @@ var $author$project$Main$transactionDetailMainPage = F2(
 							A2(
 							$rundis$elm_bootstrap$Bootstrap$Button$button,
 							_List_fromArray(
-								[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+								[
+									$rundis$elm_bootstrap$Bootstrap$Button$secondary,
+									$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$Main$InsertItemToList)
+								]),
 							_List_fromArray(
 								[
 									$elm$html$Html$text('Insert to List ')

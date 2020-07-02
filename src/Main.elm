@@ -603,6 +603,7 @@ type Msg
   | ChangeItemTransactionFormQty String
   | InputSearchByItem String
   | SelectItemToAdd Item
+  | InsertItemToList
   -- Item
   | InputSearchItem String
   | ChangeItemName String
@@ -613,7 +614,7 @@ type Msg
   | ChangeInitialStock String
   | GotItem (Result Http.Error Item)
   | SaveItem
-  | SavedItem (Result Http.Error String)
+  | SavedItem (Result Http.Error String) 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -916,6 +917,38 @@ update msg model =
         newItemState = { itemState | searchInput = searchInput }
       in
         ( { model | itemState = newItemState }, Cmd.none )
+
+    InsertItemToList ->
+      let
+        transactionState = model.transactionState
+        transactionView = transactionState.transactionView
+        itemTransactions = transactionView.itemTransactions
+
+        newItemTransactionView : Maybe ItemTransactionView
+        newItemTransactionView =
+          case model.transactionState.selectedItem of
+            Just item -> -- TODO : add UUID
+              Just
+                { itemTransaction = { initialItemTransaction | qty = model.transactionState.itemTransactionForm.qty }
+                , item = item 
+                }
+
+            _ ->
+              Nothing
+              
+              
+        newItemTransactions =
+          case newItemTransactionView of
+            Just itemTransactionView ->
+              itemTransactions ++ [itemTransactionView]
+
+            Nothing ->
+              itemTransactions
+        
+        newTransactionView = { transactionView | itemTransactions = newItemTransactions }
+        newTransactionState = { transactionState | transactionView = newTransactionView } 
+      in
+      ( { model | transactionState = newTransactionState }, Cmd.none )
 
     ChangeItemName name ->
       let
@@ -1327,7 +1360,11 @@ transactionDetailMainPage model transactionId =
         , div [] [ b [] [ text "" ] ]
         ]
     , div []
-        [ Button.button [ Button.secondary ] [ text "Insert to List " ]
+        [ Button.button 
+            [ Button.secondary 
+            , Button.onClick InsertItemToList
+            ] 
+            [ text "Insert to List " ]
         ]
     , div [ class "dropdown-divider" ] []
     , div [] [ h4 [] [ text "Selected items:" ]]
