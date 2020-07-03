@@ -38,7 +38,8 @@
     var app = Elm.Main.init({
       flags: {
         baseUrl: 'http://localhost:8080',
-        currentDate: getYmd(new Date())
+        currentDate: getYmd(new Date()),
+        seed: Math.floor(Math.random()*0x0FFFFFFF)
       }
     });
   </script>

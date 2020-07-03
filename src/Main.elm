@@ -24,12 +24,15 @@ import Json.Encode as Encode
 import Http
 import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (usLocale)
+import Uuid
+import Random exposing (Seed, initialSeed)
 
 -- MAIN
 
 type alias Flag =
   { baseUrl : String
   , currentDate : String
+  , seed : Int
   }
 
 main : Program Flag Model Msg
@@ -80,6 +83,7 @@ type alias Model =
   , projectState : ProjectModel
   , transactionState : TransactionModel
   , itemState : ItemModel
+  , seed : Seed
   }
 
 type alias ProjectModel =
@@ -108,6 +112,7 @@ type alias TransactionModel =
   , itemTransactionForm : ItemTransaction
   , selectedItem : Maybe Item
   , searchByItem : String
+  , itemTransactionDeleteIds : List Int
   }
 
 initialTransactionModel : TransactionModel
@@ -122,6 +127,7 @@ initialTransactionModel =
   , itemTransactionForm = initialItemTransaction
   , selectedItem = Nothing
   , searchByItem = ""
+  , itemTransactionDeleteIds = [ ]
   }
 
 type RequestStatus 
@@ -555,6 +561,7 @@ init flag url key =
       , projectState = initialProjectModel
       , transactionState = initialTransactionModel
       , itemState = initialItemModel
+      , seed = initialSeed flag.seed
       }
   in
   
@@ -604,6 +611,8 @@ type Msg
   | InputSearchByItem String
   | SelectItemToAdd Item
   | InsertItemToList
+  | DeleteItemTransaction ItemTransaction
+  | SaveTransaction
   -- Item
   | InputSearchItem String
   | ChangeItemName String
@@ -920,6 +929,8 @@ update msg model =
 
     InsertItemToList ->
       let
+        ( newUuid, newSeed ) = Random.step Uuid.uuidGenerator model.seed
+
         transactionState = model.transactionState
         transactionView = transactionState.transactionView
         itemTransactions = transactionView.itemTransactions
@@ -927,9 +938,13 @@ update msg model =
         newItemTransactionView : Maybe ItemTransactionView
         newItemTransactionView =
           case model.transactionState.selectedItem of
-            Just item -> -- TODO : add UUID
+            Just item -> -- TODO : add UID
               Just
-                { itemTransaction = { initialItemTransaction | qty = model.transactionState.itemTransactionForm.qty }
+                { itemTransaction = 
+                    { initialItemTransaction
+                    | qty = model.transactionState.itemTransactionForm.qty
+                    , uid = Uuid.toString newUuid
+                    }
                 , item = item 
                 }
 
@@ -948,7 +963,35 @@ update msg model =
         newTransactionView = { transactionView | itemTransactions = newItemTransactions }
         newTransactionState = { transactionState | transactionView = newTransactionView } 
       in
+      ( { model 
+        | transactionState = newTransactionState 
+        , seed = newSeed  
+        }
+      , Cmd.none 
+      )
+
+    DeleteItemTransaction itemTransaction ->
+      let
+        transactionState = model.transactionState
+        transactionView = transactionState.transactionView
+        itemTransactions = transactionView.itemTransactions
+
+        newItemTransactions = 
+          List.filter 
+          (\itemTransactionView -> itemTransactionView.itemTransaction.uid /= itemTransaction.uid) 
+          itemTransactions
+        newTransactionView = { transactionView | itemTransactions = newItemTransactions }
+        newTransactionState = 
+          { transactionState 
+          | transactionView = newTransactionView 
+          , itemTransactionDeleteIds = transactionState.itemTransactionDeleteIds ++ [ itemTransaction.id ] 
+          }
+      in
       ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    SaveTransaction ->
+      -- TODO: Save Transaction
+      ( model, Cmd.none )
 
     ChangeItemName name ->
       let
@@ -1301,7 +1344,11 @@ transactionDetailMainPage model transactionId =
   div [ class "mx-1" ]
     [ div []
         [ a [ href "/#/transactions" ] [ Button.button [ Button.secondary ] [ text "Back" ] ]
-        , Button.button [ Button.primary, Button.attrs [ class "mx-1" ] ] [ text "Save" ]
+        , Button.button 
+            [ Button.primary
+            , Button.attrs [ class "mx-1" ] 
+            , Button.onClick SaveTransaction
+            ] [ text "Save" ]
         ]
     , div [] 
         [ h4 [] [ text <| "Transaction  " ++ transactionType ++ ": " ++ projectName ]
@@ -1403,7 +1450,11 @@ itemTransactionCard itemTransactionView =
   ListGroup.li [] 
     [ div [ class "d-flex justify-content-between" ]
         [ text <| itemTransactionView.item.name ++ " x" ++ String.fromInt itemTransactionView.itemTransaction.qty 
-        , Button.button [ Button.danger, Button.small ] [ text "Delete" ]
+        , Button.button 
+            [ Button.danger
+            , Button.small 
+            , Button.onClick (DeleteItemTransaction itemTransactionView.itemTransaction)
+            ] [ text "Delete" ]
         ]
     , div []
         [ h4 [] [ text <| "Rp" ++ format usLocale (toFloat <| itemTransactionView.item.price * itemTransactionView.itemTransaction.qty) ] ] 
