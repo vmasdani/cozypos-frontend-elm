@@ -82,7 +82,7 @@ type alias Model =
   , navbarState : Navbar.State
   , projectState : ProjectModel
   , transactionState : TransactionModel
-  , itemState : ItemModel
+  , itemState : ItemModel 
   , seed : Seed
   }
 
@@ -489,7 +489,7 @@ itemStockViewDecoder =
 -- DB POST BODY
 type alias TransactionPostBody =
   { transaction : Transaction
-  , itemTransactions : List ItemTransaction
+  , itemTransactions : List ItemTransactionView
   , itemTransactionDeleteIds : List Int
   }
 
@@ -497,7 +497,7 @@ transactionPostBodyEncoder : TransactionPostBody -> Encode.Value
 transactionPostBodyEncoder transactionPostBody =
   Encode.object
     [ ( "transaction", transactionEncoder transactionPostBody.transaction )
-    , ( "itemTransactions", (Encode.list itemTransactionEncoder) transactionPostBody.itemTransactions )
+    , ( "itemTransactions", (Encode.list itemTransactionViewEncoder) transactionPostBody.itemTransactions )
     , ( "itemTransactionDeleteIds", (Encode.list Encode.int) transactionPostBody.itemTransactionDeleteIds )
     ]
 
@@ -613,6 +613,7 @@ type Msg
   | InsertItemToList
   | DeleteItemTransaction ItemTransaction
   | SaveTransaction
+  | SavedTransaction (Result Http.Error String)
   -- Item
   | InputSearchItem String
   | ChangeItemName String
@@ -991,7 +992,59 @@ update msg model =
 
     SaveTransaction ->
       -- TODO: Save Transaction
-      ( model, Cmd.none )
+      let
+        transactionPostBody : TransactionPostBody
+        transactionPostBody =
+          { transaction = model.transactionState.transactionView.transaction
+          , itemTransactions = model.transactionState.transactionView.itemTransactions
+          , itemTransactionDeleteIds = model.transactionState.itemTransactionDeleteIds
+          } 
+
+        transactionState = model.transactionState
+        newTransactionState = { transactionState | requestStatus = Loading }
+      in
+      ( { model 
+        | transactionState = newTransactionState 
+        }
+      , Http.post
+          { url = model.baseUrl ++ "/transactionsave"
+          , body = Http.jsonBody (transactionPostBodyEncoder transactionPostBody)
+          , expect = Http.expectString SavedTransaction
+          }
+      )
+
+    SavedTransaction res ->
+       let
+        transactionState = model.transactionState
+       in
+       case res of
+          Ok _ ->
+            let
+              newTransactionState = { transactionState | requestStatus = Success }
+              newModel = { model | transactionState = newTransactionState }
+            in
+            ( newModel
+            , Cmd.batch
+                [ Nav.pushUrl newModel.key "/#/transactions"
+                , case model.transactionState.projectTransactionsView.project of
+                    Just project ->
+                      Http.get
+                        { url = model.baseUrl ++ "/projects/" ++ String.fromInt project.id ++ "/transactions"
+                        , expect = Http.expectJson GotProjectTransaction projectTransactionsViewDecoder
+                        }
+                    
+                    Nothing ->
+                      Cmd.none
+                ]
+            )
+
+          _ ->
+            let
+              newTransactionState = { transactionState | requestStatus = Error }
+            in
+            ( { model | transactionState = newTransactionState }
+            , Cmd.none
+            )
 
     ChangeItemName name ->
       let
@@ -1349,6 +1402,10 @@ transactionDetailMainPage model transactionId =
             , Button.attrs [ class "mx-1" ] 
             , Button.onClick SaveTransaction
             ] [ text "Save" ]
+        , if model.transactionState.requestStatus == Loading then
+            Spinner.spinner [] []
+          else
+            span [] []
         ]
     , div [] 
         [ h4 [] [ text <| "Transaction  " ++ transactionType ++ ": " ++ projectName ]

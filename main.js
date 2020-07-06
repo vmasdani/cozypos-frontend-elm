@@ -6987,6 +6987,9 @@ var $author$project$Main$SavedItem = function (a) {
 var $author$project$Main$SavedProject = function (a) {
 	return {$: 'SavedProject', a: a};
 };
+var $author$project$Main$SavedTransaction = function (a) {
+	return {$: 'SavedTransaction', a: a};
+};
 var $author$project$Main$Success = {$: 'Success'};
 var $elm$http$Http$expectString = function (toMsg) {
 	return A2(
@@ -7580,6 +7583,10 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $elm$http$Http$get = function (r) {
+	return $elm$http$Http$request(
+		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$object = function (pairs) {
@@ -7645,6 +7652,10 @@ var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$core$Basics$not = _Basics_not;
+var $elm$http$Http$post = function (r) {
+	return $elm$http$Http$request(
+		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
 var $author$project$Main$projectEncoder = function (project) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -7732,6 +7743,87 @@ var $elm$url$Url$toString = function (url) {
 var $danyx23$elm_uuid$Uuid$toString = function (_v0) {
 	var internalString = _v0.a;
 	return internalString;
+};
+var $author$project$Main$itemTransactionEncoder = function (itemTransaction) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$int(itemTransaction.id)),
+				_Utils_Tuple2(
+				'uid',
+				$elm$json$Json$Encode$string(itemTransaction.uid)),
+				_Utils_Tuple2(
+				'itemId',
+				$elm$json$Json$Encode$int(itemTransaction.itemId)),
+				_Utils_Tuple2(
+				'transactionId',
+				$elm$json$Json$Encode$int(itemTransaction.transactionId)),
+				_Utils_Tuple2(
+				'qty',
+				$elm$json$Json$Encode$int(itemTransaction.qty))
+			]));
+};
+var $author$project$Main$itemTransactionViewEncoder = function (itemTransactionView) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'itemTransaction',
+				$author$project$Main$itemTransactionEncoder(itemTransactionView.itemTransaction)),
+				_Utils_Tuple2(
+				'item',
+				$author$project$Main$itemEncoder(itemTransactionView.item))
+			]));
+};
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $author$project$Main$transactionEncoder = function (transaction) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$int(transaction.id)),
+				_Utils_Tuple2(
+				'uid',
+				$elm$json$Json$Encode$string(transaction.uid)),
+				_Utils_Tuple2(
+				'cashier',
+				$elm$json$Json$Encode$string(transaction.cashier)),
+				_Utils_Tuple2(
+				'priceIsCustom',
+				$elm$json$Json$Encode$bool(transaction.priceIsCustom)),
+				_Utils_Tuple2(
+				'customPrice',
+				$elm$json$Json$Encode$int(transaction.customPrice)),
+				_Utils_Tuple2(
+				'projectId',
+				$elm$json$Json$Encode$int(transaction.projectId))
+			]));
+};
+var $author$project$Main$transactionPostBodyEncoder = function (transactionPostBody) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'transaction',
+				$author$project$Main$transactionEncoder(transactionPostBody.transaction)),
+				_Utils_Tuple2(
+				'itemTransactions',
+				$elm$json$Json$Encode$list($author$project$Main$itemTransactionViewEncoder)(transactionPostBody.itemTransactions)),
+				_Utils_Tuple2(
+				'itemTransactionDeleteIds',
+				$elm$json$Json$Encode$list($elm$json$Json$Encode$int)(transactionPostBody.itemTransactionDeleteIds))
+			]));
 };
 var $danyx23$elm_uuid$Uuid$Uuid = function (a) {
 	return {$: 'Uuid', a: a};
@@ -8655,7 +8747,62 @@ var $author$project$Main$update = F2(
 						{transactionState: newTransactionState}),
 					$elm$core$Platform$Cmd$none);
 			case 'SaveTransaction':
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				var transactionState = model.transactionState;
+				var transactionPostBody = {itemTransactionDeleteIds: model.transactionState.itemTransactionDeleteIds, itemTransactions: model.transactionState.transactionView.itemTransactions, transaction: model.transactionState.transactionView.transaction};
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{requestStatus: $author$project$Main$Loading});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$http$Http$post(
+						{
+							body: $elm$http$Http$jsonBody(
+								$author$project$Main$transactionPostBodyEncoder(transactionPostBody)),
+							expect: $elm$http$Http$expectString($author$project$Main$SavedTransaction),
+							url: model.baseUrl + '/transactionsave'
+						}));
+			case 'SavedTransaction':
+				var res = msg.a;
+				var transactionState = model.transactionState;
+				if (res.$ === 'Ok') {
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{requestStatus: $author$project$Main$Success});
+					var newModel = _Utils_update(
+						model,
+						{transactionState: newTransactionState});
+					return _Utils_Tuple2(
+						newModel,
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									A2($elm$browser$Browser$Navigation$pushUrl, newModel.key, '/#/transactions'),
+									function () {
+									var _v16 = model.transactionState.projectTransactionsView.project;
+									if (_v16.$ === 'Just') {
+										var project = _v16.a;
+										return $elm$http$Http$get(
+											{
+												expect: A2($elm$http$Http$expectJson, $author$project$Main$GotProjectTransaction, $author$project$Main$projectTransactionsViewDecoder),
+												url: model.baseUrl + ('/projects/' + ($elm$core$String$fromInt(project.id) + '/transactions'))
+											});
+									} else {
+										return $elm$core$Platform$Cmd$none;
+									}
+								}()
+								])));
+				} else {
+					var newTransactionState = _Utils_update(
+						transactionState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{transactionState: newTransactionState}),
+						$elm$core$Platform$Cmd$none);
+				}
 			case 'ChangeItemName':
 				var name = msg.a;
 				var itemState = model.itemState;
@@ -12142,7 +12289,8 @@ var $author$project$Main$transactionDetailMainPage = F2(
 							_List_fromArray(
 								[
 									$elm$html$Html$text('Save')
-								]))
+								])),
+							_Utils_eq(model.transactionState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
 						])),
 					A2(
 					$elm$html$Html$div,
