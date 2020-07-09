@@ -71,7 +71,7 @@ urlParser =
     , Url.map ItemDetail (Url.s "items" </> Url.string)
     , Url.map TransactionPage (Url.s "transactions")
     , Url.map TransactionDetail (Url.s "transactions" </> Url.string)
-    , Url.map StockInPage (Url.s "stockins" </> Url.string)
+    , Url.map StockInPage (Url.s "items" </> Url.string </> Url.s "stockins")
     ]
 
 -- MODEL
@@ -622,7 +622,9 @@ type Msg
   | ChangeInitialStock String
   | GotItem (Result Http.Error Item)
   | SaveItem
-  | SavedItem (Result Http.Error String) 
+  | SavedItem (Result Http.Error String)
+  -- Stockin
+  | GotItemStockIns (Result Http.Error (List StockIn))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -1160,6 +1162,14 @@ update msg model =
           in  
           ( { model | itemState = newItemState }, Cmd.none )
 
+    GotItemStockIns res ->
+      case res of
+        Ok stockIns ->
+          ( model, Cmd.none )
+
+        _ ->
+          ( model, Cmd.none  )
+
 -- SUBSCRIPTIONS
 
 
@@ -1599,7 +1609,7 @@ itemCard itemStockView =
                 , span [] [ b [] [ text <| String.fromInt itemStockView.inStock ] ]
                 ]
             , div []
-                [ a [ href ("/#/stockins/" ++ String.fromInt item.id) ]
+                [ a [ href ("/#/items/" ++ String.fromInt item.id ++  "/stockins") ]
                     [ Button.button [ Button.info, Button.small ] [ text "Stock in" ] ] 
                 ] 
             ]
@@ -1874,8 +1884,20 @@ fetchByUrl model =
             in
             ( { model | transactionState = newTransactionState }, Cmd.none )
 
-    StockInPage stockInId ->
-      ( model, Cmd.none )
+    StockInPage itemId ->
+      ( model
+      , Cmd.batch
+          [ Http.request
+              { method = "GET"
+              , headers = []
+              , url = model.baseUrl ++ "/items/" ++ itemId ++ "/stockins"
+              , body = Http.emptyBody
+              , expect = Http.expectJson GotItemStockIns (Decode.list stockInDecoder) 
+              , timeout = Nothing
+              , tracker = Nothing
+              }
+          ] 
+      )
 
     ItemPage ->
       let

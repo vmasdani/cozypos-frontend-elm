@@ -7023,6 +7023,9 @@ var $elm$http$Http$expectString = function (toMsg) {
 var $author$project$Main$GotItem = function (a) {
 	return {$: 'GotItem', a: a};
 };
+var $author$project$Main$GotItemStockIns = function (a) {
+	return {$: 'GotItemStockIns', a: a};
+};
 var $author$project$Main$GotItems = function (a) {
 	return {$: 'GotItems', a: a};
 };
@@ -7245,6 +7248,35 @@ var $author$project$Main$projectsViewDecoder = A3(
 		'projects',
 		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder),
 		$elm$json$Json$Decode$succeed($author$project$Main$ProjectsView)));
+var $author$project$Main$StockIn = F6(
+	function (id, uid, itemId, qty, updatedAt, createdAt) {
+		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, uid: uid, updatedAt: updatedAt};
+	});
+var $author$project$Main$stockInDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'qty',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'itemId',
+				$elm$json$Json$Decode$int,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'uid',
+					$elm$json$Json$Decode$string,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'id',
+						$elm$json$Json$Decode$int,
+						$elm$json$Json$Decode$succeed($author$project$Main$StockIn)))))));
 var $author$project$Main$TransactionView = F3(
 	function (transaction, itemTransactions, totalPrice) {
 		return {itemTransactions: itemTransactions, totalPrice: totalPrice, transaction: transaction};
@@ -7543,8 +7575,11 @@ var $author$project$Main$urlParser = $elm$url$Url$Parser$oneOf(
 			$author$project$Main$StockInPage,
 			A2(
 				$elm$url$Url$Parser$slash,
-				$elm$url$Url$Parser$s('stockins'),
-				$elm$url$Url$Parser$string))
+				$elm$url$Url$Parser$s('items'),
+				A2(
+					$elm$url$Url$Parser$slash,
+					$elm$url$Url$Parser$string,
+					$elm$url$Url$Parser$s('stockins'))))
 		]));
 var $author$project$Main$fetchByUrl = function (model) {
 	var page = A2(
@@ -7638,8 +7673,26 @@ var $author$project$Main$fetchByUrl = function (model) {
 					$elm$core$Platform$Cmd$none);
 			}
 		case 'StockInPage':
-			var stockInId = page.a;
-			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			var itemId = page.a;
+			return _Utils_Tuple2(
+				model,
+				$elm$core$Platform$Cmd$batch(
+					_List_fromArray(
+						[
+							$elm$http$Http$request(
+							{
+								body: $elm$http$Http$emptyBody,
+								expect: A2(
+									$elm$http$Http$expectJson,
+									$author$project$Main$GotItemStockIns,
+									$elm$json$Json$Decode$list($author$project$Main$stockInDecoder)),
+								headers: _List_Nil,
+								method: 'GET',
+								timeout: $elm$core$Maybe$Nothing,
+								tracker: $elm$core$Maybe$Nothing,
+								url: model.baseUrl + ('/items/' + (itemId + '/stockins'))
+							})
+						])));
 		case 'ItemPage':
 			var itemState = model.itemState;
 			var newItemState = _Utils_update(
@@ -9061,7 +9114,7 @@ var $author$project$Main$update = F2(
 							$elm$http$Http$jsonBody(
 								$author$project$Main$itemPostBodyEncoder(itemPostBody)),
 							$elm$http$Http$expectString($author$project$Main$SavedItem))));
-			default:
+			case 'SavedItem':
 				var res = msg.a;
 				var itemState = model.itemState;
 				if (res.$ === 'Ok') {
@@ -9082,6 +9135,14 @@ var $author$project$Main$update = F2(
 							model,
 							{itemState: newItemState}),
 						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var res = msg.a;
+				if (res.$ === 'Ok') {
+					var stockIns = res.a;
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 		}
 	});
@@ -11707,7 +11768,7 @@ var $author$project$Main$itemCard = function (itemStockView) {
 										_List_fromArray(
 											[
 												$elm$html$Html$Attributes$href(
-												'/#/stockins/' + $elm$core$String$fromInt(item.id))
+												'/#/items/' + ($elm$core$String$fromInt(item.id) + '/stockins'))
 											]),
 										_List_fromArray(
 											[
