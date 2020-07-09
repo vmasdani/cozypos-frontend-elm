@@ -6148,17 +6148,40 @@ var $author$project$Main$Project = F6(
 		return {createdAt: createdAt, id: id, name: name, startDate: startDate, uid: uid, updatedAt: updatedAt};
 	});
 var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $elm$json$Json$Decode$map6 = _Json_map6;
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom = $elm$json$Json$Decode$map2($elm$core$Basics$apR);
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required = F3(
+	function (key, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$field, key, valDecoder),
+			decoder);
+	});
 var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Main$projectDecoder = A7(
-	$elm$json$Json$Decode$map6,
-	$author$project$Main$Project,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'startDate', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $author$project$Main$projectDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'startDate',
+			$elm$json$Json$Decode$string,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'name',
+				$elm$json$Json$Decode$string,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'uid',
+					$elm$json$Json$Decode$string,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'id',
+						$elm$json$Json$Decode$int,
+						$elm$json$Json$Decode$succeed($author$project$Main$Project)))))));
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -7017,18 +7040,39 @@ var $author$project$Main$Item = F8(
 	function (id, uid, name, description, price, manufacturingPrice, updatedAt, createdAt) {
 		return {createdAt: createdAt, description: description, id: id, manufacturingPrice: manufacturingPrice, name: name, price: price, uid: uid, updatedAt: updatedAt};
 	});
-var $elm$json$Json$Decode$map8 = _Json_map8;
-var $author$project$Main$itemDecoder = A9(
-	$elm$json$Json$Decode$map8,
-	$author$project$Main$Item,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'description', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'price', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'manufacturingPrice', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $author$project$Main$itemDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'manufacturingPrice',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'price',
+				$elm$json$Json$Decode$int,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'description',
+					$elm$json$Json$Decode$string,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'name',
+						$elm$json$Json$Decode$string,
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'uid',
+							$elm$json$Json$Decode$string,
+							A3(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+								'id',
+								$elm$json$Json$Decode$int,
+								$elm$json$Json$Decode$succeed($author$project$Main$Item)))))))));
 var $author$project$Main$ItemStockView = F2(
 	function (item, inStock) {
 		return {inStock: inStock, item: item};
@@ -7043,13 +7087,14 @@ var $elm$json$Json$Decode$maybe = function (decoder) {
 			]));
 };
 var $author$project$Main$itemStockViewDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Main$ItemStockView,
-	A2(
-		$elm$json$Json$Decode$field,
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'inStock',
+	$elm$json$Json$Decode$int,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 		'item',
-		$elm$json$Json$Decode$maybe($author$project$Main$itemDecoder)),
-	A2($elm$json$Json$Decode$field, 'inStock', $elm$json$Json$Decode$int));
+		$elm$json$Json$Decode$maybe($author$project$Main$itemDecoder),
+		$elm$json$Json$Decode$succeed($author$project$Main$ItemStockView)));
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$url$Url$Parser$State = F5(
 	function (visited, unvisited, params, frag, value) {
@@ -7178,21 +7223,28 @@ var $author$project$Main$ProjectView = F3(
 	function (project, income, totalManufacturingPrice) {
 		return {income: income, project: project, totalManufacturingPrice: totalManufacturingPrice};
 	});
-var $elm$json$Json$Decode$map3 = _Json_map3;
-var $author$project$Main$projectViewDecoder = A4(
-	$elm$json$Json$Decode$map3,
-	$author$project$Main$ProjectView,
-	A2($elm$json$Json$Decode$field, 'project', $author$project$Main$projectDecoder),
-	A2($elm$json$Json$Decode$field, 'income', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'totalManufacturingPrice', $elm$json$Json$Decode$int));
+var $author$project$Main$projectViewDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'totalManufacturingPrice',
+	$elm$json$Json$Decode$int,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'income',
+		$elm$json$Json$Decode$int,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'project',
+			$author$project$Main$projectDecoder,
+			$elm$json$Json$Decode$succeed($author$project$Main$ProjectView))));
 var $author$project$Main$projectsViewDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Main$ProjectsView,
-	A2(
-		$elm$json$Json$Decode$field,
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'totalIncome',
+	$elm$json$Json$Decode$int,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 		'projects',
-		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder)),
-	A2($elm$json$Json$Decode$field, 'totalIncome', $elm$json$Json$Decode$int));
+		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder),
+		$elm$json$Json$Decode$succeed($author$project$Main$ProjectsView)));
 var $author$project$Main$TransactionView = F3(
 	function (transaction, itemTransactions, totalPrice) {
 		return {itemTransactions: itemTransactions, totalPrice: totalPrice, transaction: transaction};
@@ -7205,47 +7257,95 @@ var $author$project$Main$ItemTransaction = F7(
 	function (id, uid, itemId, transactionId, qty, createdAt, updatedAt) {
 		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, transactionId: transactionId, uid: uid, updatedAt: updatedAt};
 	});
-var $elm$json$Json$Decode$map7 = _Json_map7;
-var $author$project$Main$itemTransactionDecoder = A8(
-	$elm$json$Json$Decode$map7,
-	$author$project$Main$ItemTransaction,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'itemId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'transactionId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'qty', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
+var $author$project$Main$itemTransactionDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'qty',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'transactionId',
+				$elm$json$Json$Decode$int,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'itemId',
+					$elm$json$Json$Decode$int,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'uid',
+						$elm$json$Json$Decode$string,
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'id',
+							$elm$json$Json$Decode$int,
+							$elm$json$Json$Decode$succeed($author$project$Main$ItemTransaction))))))));
 var $author$project$Main$itemTransactionViewDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Main$ItemTransactionView,
-	A2($elm$json$Json$Decode$field, 'itemTransaction', $author$project$Main$itemTransactionDecoder),
-	A2($elm$json$Json$Decode$field, 'item', $author$project$Main$itemDecoder));
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'item',
+	$author$project$Main$itemDecoder,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'itemTransaction',
+		$author$project$Main$itemTransactionDecoder,
+		$elm$json$Json$Decode$succeed($author$project$Main$ItemTransactionView)));
 var $author$project$Main$Transaction = F8(
 	function (id, uid, cashier, priceIsCustom, customPrice, projectId, createdAt, updatedAt) {
 		return {cashier: cashier, createdAt: createdAt, customPrice: customPrice, id: id, priceIsCustom: priceIsCustom, projectId: projectId, uid: uid, updatedAt: updatedAt};
 	});
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
-var $author$project$Main$transactionDecoder = A9(
-	$elm$json$Json$Decode$map8,
-	$author$project$Main$Transaction,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'uid', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'cashier', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'priceIsCustom', $elm$json$Json$Decode$bool),
-	A2($elm$json$Json$Decode$field, 'customPrice', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'projectId', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'updated_at', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'created_at', $elm$json$Json$Decode$string));
-var $author$project$Main$transactionViewDecoder = A4(
-	$elm$json$Json$Decode$map3,
-	$author$project$Main$TransactionView,
-	A2($elm$json$Json$Decode$field, 'transaction', $author$project$Main$transactionDecoder),
-	A2(
-		$elm$json$Json$Decode$field,
+var $author$project$Main$transactionDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'projectId',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'customPrice',
+				$elm$json$Json$Decode$int,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'priceIsCustom',
+					$elm$json$Json$Decode$bool,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'cashier',
+						$elm$json$Json$Decode$string,
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'uid',
+							$elm$json$Json$Decode$string,
+							A3(
+								$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+								'id',
+								$elm$json$Json$Decode$int,
+								$elm$json$Json$Decode$succeed($author$project$Main$Transaction)))))))));
+var $author$project$Main$transactionViewDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'totalPrice',
+	$elm$json$Json$Decode$int,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 		'itemTransactions',
-		$elm$json$Json$Decode$list($author$project$Main$itemTransactionViewDecoder)),
-	A2($elm$json$Json$Decode$field, 'totalPrice', $elm$json$Json$Decode$int));
+		$elm$json$Json$Decode$list($author$project$Main$itemTransactionViewDecoder),
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'transaction',
+			$author$project$Main$transactionDecoder,
+			$elm$json$Json$Decode$succeed($author$project$Main$TransactionView))));
 var $author$project$Main$ItemDetail = function (a) {
 	return {$: 'ItemDetail', a: a};
 };
@@ -7254,6 +7354,9 @@ var $author$project$Main$ProjectDetail = function (a) {
 	return {$: 'ProjectDetail', a: a};
 };
 var $author$project$Main$ProjectPage = {$: 'ProjectPage'};
+var $author$project$Main$StockInPage = function (a) {
+	return {$: 'StockInPage', a: a};
+};
 var $author$project$Main$TransactionDetail = function (a) {
 	return {$: 'TransactionDetail', a: a};
 };
@@ -7434,6 +7537,13 @@ var $author$project$Main$urlParser = $elm$url$Url$Parser$oneOf(
 			A2(
 				$elm$url$Url$Parser$slash,
 				$elm$url$Url$Parser$s('transactions'),
+				$elm$url$Url$Parser$string)),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Main$StockInPage,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('stockins'),
 				$elm$url$Url$Parser$string))
 		]));
 var $author$project$Main$fetchByUrl = function (model) {
@@ -7501,11 +7611,11 @@ var $author$project$Main$fetchByUrl = function (model) {
 		case 'TransactionDetail':
 			var transactionId = page.a;
 			var transactionState = model.transactionState;
-			var newTransactionState = _Utils_update(
-				transactionState,
-				{requestStatus: $author$project$Main$Loading});
 			var _v2 = $elm$core$String$toInt(transactionId);
 			if (_v2.$ === 'Just') {
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{requestStatus: $author$project$Main$Loading});
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -7518,8 +7628,18 @@ var $author$project$Main$fetchByUrl = function (model) {
 						$elm$http$Http$emptyBody,
 						A2($elm$http$Http$expectJson, $author$project$Main$GotTransactionView, $author$project$Main$transactionViewDecoder)));
 			} else {
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				var newTransactionState = _Utils_update(
+					transactionState,
+					{transactionView: $author$project$Main$initialTransactionView});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{transactionState: newTransactionState}),
+					$elm$core$Platform$Cmd$none);
 			}
+		case 'StockInPage':
+			var stockInId = page.a;
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		case 'ItemPage':
 			var itemState = model.itemState;
 			var newItemState = _Utils_update(
@@ -7679,16 +7799,14 @@ var $author$project$Main$ProjectTransactionsView = F2(
 		return {project: project, transactions: transactions};
 	});
 var $author$project$Main$projectTransactionsViewDecoder = A3(
-	$elm$json$Json$Decode$map2,
-	$author$project$Main$ProjectTransactionsView,
-	A2(
-		$elm$json$Json$Decode$field,
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'transactions',
+	$elm$json$Json$Decode$list($author$project$Main$transactionViewDecoder),
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 		'project',
-		$elm$json$Json$Decode$maybe($author$project$Main$projectDecoder)),
-	A2(
-		$elm$json$Json$Decode$field,
-		'transactions',
-		$elm$json$Json$Decode$list($author$project$Main$transactionViewDecoder)));
+		$elm$json$Json$Decode$maybe($author$project$Main$projectDecoder),
+		$elm$json$Json$Decode$succeed($author$project$Main$ProjectTransactionsView)));
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$random$Random$step = F2(
 	function (_v0, seed) {
@@ -8482,14 +8600,17 @@ var $author$project$Main$update = F2(
 							{transactionState: newTransactionState}),
 						$elm$core$Platform$Cmd$none);
 				} else {
+					var e = res.a;
 					var newTransactionState = _Utils_update(
 						transactionState,
 						{requestStatus: $author$project$Main$Error});
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{transactionState: newTransactionState}),
-						$elm$core$Platform$Cmd$none);
+					return $elm$core$Debug$log(
+						$elm$core$Debug$toString(e))(
+						_Utils_Tuple2(
+							_Utils_update(
+								model,
+								{transactionState: newTransactionState}),
+							$elm$core$Platform$Cmd$none));
 				}
 			case 'GotTransaction':
 				var res = msg.a;
@@ -8688,7 +8809,9 @@ var $author$project$Main$update = F2(
 								itemTransaction: _Utils_update(
 									$author$project$Main$initialItemTransaction,
 									{
+										itemId: item.id,
 										qty: model.transactionState.itemTransactionForm.qty,
+										transactionId: model.transactionState.transactionView.transaction.id,
 										uid: $danyx23$elm_uuid$Uuid$toString(newUuid)
 									})
 							});
@@ -11584,7 +11707,7 @@ var $author$project$Main$itemCard = function (itemStockView) {
 										_List_fromArray(
 											[
 												$elm$html$Html$Attributes$href(
-												'/#/stockin/' + $elm$core$String$fromInt(item.id))
+												'/#/stockins/' + $elm$core$String$fromInt(item.id))
 											]),
 										_List_fromArray(
 											[
@@ -12060,6 +12183,17 @@ var $author$project$Main$projectPage = function (model) {
 					]))
 			]));
 };
+var $author$project$Main$stockInPage = F2(
+	function (model, stockInId) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$author$project$Main$navbar(model),
+					$elm$html$Html$text('Stock in page')
+				]));
+	});
 var $author$project$Main$ChangeCustomPrice = function (a) {
 	return {$: 'ChangeCustomPrice', a: a};
 };
@@ -12898,6 +13032,7 @@ var $rundis$elm_bootstrap$Bootstrap$Dropdown$nextStatus = function (status) {
 			return $rundis$elm_bootstrap$Bootstrap$Dropdown$Open;
 	}
 };
+var $elm$json$Json$Decode$map3 = _Json_map3;
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetHeight = A2($elm$json$Json$Decode$field, 'offsetHeight', $elm$json$Json$Decode$float);
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetWidth = A2($elm$json$Json$Decode$field, 'offsetWidth', $elm$json$Json$Decode$float);
 var $elm$json$Json$Decode$map4 = _Json_map4;
@@ -13358,11 +13493,16 @@ var $author$project$Main$view = function (model) {
 					return _Utils_Tuple2(
 						'Transactions',
 						$author$project$Main$transactionPage(model));
-				default:
+				case 'TransactionDetail':
 					var transactionId = page.a;
 					return _Utils_Tuple2(
 						'Transaction Detail',
 						A2($author$project$Main$transactionDetail, model, transactionId));
+				default:
+					var stockInId = page.a;
+					return _Utils_Tuple2(
+						'Stock In Detail',
+						A2($author$project$Main$stockInPage, model, stockInId));
 			}
 		}
 	}();

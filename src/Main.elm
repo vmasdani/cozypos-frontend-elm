@@ -4,7 +4,7 @@ import Browser
 import Browser.Hash as Hash
 import Browser.Navigation as Nav
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (style, class, href, for)
 import Html.Events exposing (..)
 import Url
 import Url.Parser as Url exposing (Parser, (</>))
@@ -20,6 +20,7 @@ import Bootstrap.Progress as Progress
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Breadcrumb exposing (item)
 import Json.Decode as Decode exposing (Decoder, int, string, float, field, bool, list, maybe)
+import Json.Decode.Pipeline exposing (required, optional, hardcoded)
 import Json.Encode as Encode
 import Http
 import FormatNumber exposing (format)
@@ -57,6 +58,7 @@ type Page
   | ItemDetail String
   | TransactionPage
   | TransactionDetail String
+  | StockInPage String
 
 -- URL PARSER
 urlParser : Parser (Page -> a) a
@@ -69,6 +71,7 @@ urlParser =
     , Url.map ItemDetail (Url.s "items" </> Url.string)
     , Url.map TransactionPage (Url.s "transactions")
     , Url.map TransactionDetail (Url.s "transactions" </> Url.string)
+    , Url.map StockInPage (Url.s "stockins" </> Url.string)
     ]
 
 -- MODEL
@@ -141,13 +144,17 @@ type RequestStatus
 type alias ApiKey = 
   { id : Int
   , apiKey : String
+  , createdAt: String
+  , updatedAt: String
   }
 
 apiKeyDecoder : Decoder ApiKey
 apiKeyDecoder =
-  Decode.map2 ApiKey
-    (field "id" int)
-    (field "apiKey" string)
+  Decode.succeed ApiKey
+    |> required "id" int
+    |> required "apiKey" string
+    |> required "created_at" string
+    |> required "updated_at" string
 
 type alias Project =
   { id : Int
@@ -170,13 +177,13 @@ initialProject =
 
 projectDecoder : Decoder Project
 projectDecoder =
-  Decode.map6 Project
-    (field "id" int)
-    (field "uid" string)
-    (field "name" string)
-    (field "startDate" string)
-    (field "updated_at" string)
-    (field "created_at" string)
+  Decode.succeed Project
+    |> required "id" int
+    |> required "uid" string
+    |> required "name" string
+    |> required "startDate" string
+    |> required "updated_at" string
+    |> required "created_at" string
 
 projectEncoder : Project -> Encode.Value
 projectEncoder project =
@@ -215,16 +222,15 @@ initialItem =
 
 itemDecoder : Decoder Item
 itemDecoder =
-  Decode.map8 Item
-    (field "id" int)
-    (field "uid" string)
-    (field "name" string)
-    (field "description" string)
-    (field "price" int)
-    (field "manufacturingPrice" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-
+  Decode.succeed Item
+    |> required "id" int
+    |> required "uid" string
+    |> required "name" string
+    |> required "description" string
+    |> required "price" int
+    |> required "manufacturingPrice" int
+    |> required "updated_at" string
+    |> required "created_at" string
 itemEncoder : Item -> Encode.Value
 itemEncoder item =
   Encode.object 
@@ -262,16 +268,15 @@ initialTransaction =
 
 transactionDecoder : Decoder Transaction
 transactionDecoder =
-  Decode.map8 Transaction
-    (field "id" int)
-    (field "uid" string)
-    (field "cashier" string)
-    (field "priceIsCustom" bool)
-    (field "customPrice" int)
-    (field "projectId" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-
+  Decode.succeed Transaction
+    |> required "id" int
+    |> required "uid" string
+    |> required "cashier" string
+    |> required "priceIsCustom" bool
+    |> required "customPrice" int
+    |> required "projectId" int
+    |> required "updated_at" string
+    |> required "created_at" string
 transactionEncoder : Transaction -> Encode.Value
 transactionEncoder transaction =
   Encode.object
@@ -296,14 +301,13 @@ type alias StockIn =
 
 stockInDecoder : Decoder StockIn
 stockInDecoder =
-  Decode.map6 StockIn
-    (field "id" int)
-    (field "uid" string)
-    (field "itemId" int)
-    (field "qty" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-
+  Decode.succeed StockIn
+    |> required "id" int
+    |> required "uid" string
+    |> required "itemId" int
+    |> required "qty" int
+    |> required "updated_at" string
+    |> required "created_at" string
 type alias ItemTransaction =
   { id : Int
   , uid : String
@@ -313,7 +317,6 @@ type alias ItemTransaction =
   , createdAt : String
   , updatedAt : String
   }
-
 initialItemTransaction : ItemTransaction
 initialItemTransaction =
   { id = 0
@@ -324,18 +327,16 @@ initialItemTransaction =
   , createdAt = ""
   , updatedAt = ""
   }
-
 itemTransactionDecoder : Decoder ItemTransaction
 itemTransactionDecoder =
-  Decode.map7 ItemTransaction
-    (field "id" int)
-    (field "uid" string)
-    (field "itemId" int)
-    (field "transactionId" int)
-    (field "qty" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-    
+  Decode.succeed ItemTransaction
+    |> required "id" int
+    |> required "uid" string
+    |> required "itemId" int
+    |> required "transactionId" int
+    |> required "qty" int
+    |> required "updated_at" string
+    |> required "created_at" string  
 itemTransactionEncoder : ItemTransaction -> Encode.Value
 itemTransactionEncoder itemTransaction =
   Encode.object
@@ -360,15 +361,14 @@ type alias ItemStockIn =
 
 itemStockInDecoder : Decoder ItemStockIn
 itemStockInDecoder =
-  Decode.map7 ItemStockIn
-    (field "id" int)
-    (field "uid" string)
-    (field "itemId" int)
-    (field "stockInId" int)
-    (field "qty" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-
+  Decode.succeed ItemStockIn
+    |> required "id" int
+    |> required "uid" string
+    |> required "itemId" int
+    |> required "stockInId" int
+    |> required "qty" int
+    |> required "updated_at" string
+    |> required "created_at" string
 type alias ItemProject =
   { id : Int
   , uid : String
@@ -381,15 +381,15 @@ type alias ItemProject =
 
 itemProjectDecoder : Decoder ItemProject
 itemProjectDecoder =
-  Decode.map7 ItemProject
-    (field "id" int)
-    (field "uid" string)
-    (field "itemId" int)
-    (field "projectId" int)
-    (field "qty" int)
-    (field "updated_at" string)
-    (field "created_at" string)
-
+  Decode.succeed ItemProject
+    |> required "id" int
+    |> required "uid" string
+    |> required "itemId" int
+    |> required "projectId" int
+    |> required "qty" int
+    |> required "updated_at" string
+    |> required "created_at" string
+    
 -- DB VIEW
 type alias ProjectView =
   { project : Project
@@ -399,21 +399,19 @@ type alias ProjectView =
 
 projectViewDecoder : Decoder ProjectView
 projectViewDecoder =
-  Decode.map3 ProjectView
-    (field "project" projectDecoder)
-    (field "income" int)
-    (field "totalManufacturingPrice" int)
-
+  Decode.succeed ProjectView
+    |> required "project" projectDecoder
+    |> required "income" int
+    |> required "totalManufacturingPrice" int
 type alias ProjectsView =
   { projects : List ProjectView
   , totalIncome : Int
   }
-
 projectsViewDecoder : Decoder ProjectsView
 projectsViewDecoder =
-  Decode.map2 ProjectsView
-    (field "projects" (Decode.list projectViewDecoder))
-    (field "totalIncome" int)
+  Decode.succeed ProjectsView
+    |> required "projects" (Decode.list projectViewDecoder)
+    |> required "totalIncome" int
 
 type alias ProjectTransactionsView =
   { project : Maybe Project
@@ -421,9 +419,9 @@ type alias ProjectTransactionsView =
   }
 projectTransactionsViewDecoder : Decoder ProjectTransactionsView
 projectTransactionsViewDecoder =
-  Decode.map2 ProjectTransactionsView
-    (field "project" (maybe projectDecoder))
-    (field "transactions" (Decode.list transactionViewDecoder))
+  Decode.succeed ProjectTransactionsView
+    |> required "project" (maybe projectDecoder)
+    |> required "transactions" (Decode.list transactionViewDecoder)
 
 initialProjectTransationsView : ProjectTransactionsView
 initialProjectTransationsView =
@@ -446,10 +444,10 @@ initialTransactionView =
 
 transactionViewDecoder : Decoder TransactionView
 transactionViewDecoder =
-  Decode.map3 TransactionView
-    (field "transaction" transactionDecoder)
-    (field "itemTransactions" (Decode.list itemTransactionViewDecoder))
-    (field "totalPrice" int)
+  Decode.succeed TransactionView
+    |> required "transaction" transactionDecoder
+    |> required "itemTransactions" (Decode.list itemTransactionViewDecoder)
+    |> required "totalPrice" int
 
 type alias ItemTransactionView =
   { itemTransaction : ItemTransaction
@@ -458,9 +456,9 @@ type alias ItemTransactionView =
 
 itemTransactionViewDecoder : Decoder ItemTransactionView
 itemTransactionViewDecoder =
-  Decode.map2 ItemTransactionView
-    (field "itemTransaction" itemTransactionDecoder)
-    (field "item" itemDecoder)
+  Decode.succeed ItemTransactionView
+    |> required "itemTransaction" itemTransactionDecoder
+    |> required "item" itemDecoder
 
 itemTransactionViewEncoder :  ItemTransactionView -> Encode.Value
 itemTransactionViewEncoder itemTransactionView =
@@ -482,9 +480,9 @@ initialItemStockView =
 
 itemStockViewDecoder : Decoder ItemStockView
 itemStockViewDecoder =
-  Decode.map2 ItemStockView
-    (field "item" (maybe itemDecoder))
-    (field "inStock" int)
+  Decode.succeed ItemStockView
+     |> required "item" (maybe itemDecoder)
+     |> required "inStock" int
 
 -- DB POST BODY
 type alias TransactionPostBody =
@@ -509,10 +507,10 @@ type alias ItemPostBody =
 
 itemPostBodyDecoder : Decoder ItemPostBody
 itemPostBodyDecoder =
-  Decode.map3 ItemPostBody
-    (field "item" itemDecoder)
-    (field "withInitialStock" Decode.bool)
-    (field "initialStockQty" Decode.int)
+  Decode.succeed ItemPostBody
+    |> required "item" itemDecoder
+    |> required "withInitialStock" Decode.bool
+    |> required "initialStockQty" Decode.int
 
 itemPostBodyEncoder : ItemPostBody -> Encode.Value
 itemPostBodyEncoder itemPostBody =
@@ -798,10 +796,11 @@ update msg model =
           in
           ( { model | transactionState = newTransactionState}, Cmd.none )
         
-        Err _ ->
+        Err e ->
           let
             newTransactionState = { transactionState | requestStatus = Error }
           in
+          (Debug.log <| Debug.toString e)
           ( { model | transactionState = newTransactionState}, Cmd.none )
 
     GotTransaction res ->
@@ -945,13 +944,14 @@ update msg model =
                     { initialItemTransaction
                     | qty = model.transactionState.itemTransactionForm.qty
                     , uid = Uuid.toString newUuid
+                    , itemId = item.id
+                    , transactionId = model.transactionState.transactionView.transaction.id
                     }
                 , item = item 
                 }
 
             _ ->
               Nothing
-              
               
         newItemTransactions =
           case newItemTransactionView of
@@ -1203,6 +1203,9 @@ view model =
           TransactionDetail transactionId ->
             ("Transaction Detail", transactionDetail model transactionId)
 
+          StockInPage stockInId ->
+            ("Stock In Detail", stockInPage model stockInId )
+
     (title, body) = currentPage 
   in
   { title = "Cozy PoS | " ++ title
@@ -1250,7 +1253,12 @@ navbar model =
         ]
     |> Navbar.view model.navbarState
 
-
+stockInPage : Model -> String -> Html Msg
+stockInPage model stockInId =
+  div [] 
+    [ navbar model
+    , text "Stock in page" 
+    ]
 transactionPage : Model -> Html Msg
 transactionPage model =
   let
@@ -1462,7 +1470,7 @@ transactionDetailMainPage model transactionId =
                     ) 
                 ]
         , div [] [ b [] [ text "" ] ]
-        ]
+        ] 
     , div []
         [ Button.button 
             [ Button.secondary 
@@ -1591,7 +1599,7 @@ itemCard itemStockView =
                 , span [] [ b [] [ text <| String.fromInt itemStockView.inStock ] ]
                 ]
             , div []
-                [ a [ href ("/#/stockin/" ++ String.fromInt item.id) ]
+                [ a [ href ("/#/stockins/" ++ String.fromInt item.id) ]
                     [ Button.button [ Button.info, Button.small ] [ text "Stock in" ] ] 
                 ] 
             ]
@@ -1845,10 +1853,12 @@ fetchByUrl model =
     TransactionDetail transactionId ->
       let
         transactionState = model.transactionState
-        newTransactionState = { transactionState | requestStatus = Loading }
       in
         case String.toInt transactionId of
           Just _ ->
+            let
+              newTransactionState = { transactionState | requestStatus = Loading }
+            in
             ( { model | transactionState = newTransactionState }
             , sendRequest
                 model.baseUrl
@@ -1859,7 +1869,13 @@ fetchByUrl model =
             )
 
           _ ->
-            ( model, Cmd.none )
+            let
+              newTransactionState = { transactionState | transactionView = initialTransactionView }
+            in
+            ( { model | transactionState = newTransactionState }, Cmd.none )
+
+    StockInPage stockInId ->
+      ( model, Cmd.none )
 
     ItemPage ->
       let
