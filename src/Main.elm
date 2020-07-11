@@ -102,7 +102,26 @@ type alias ItemModel =
   , searchInput : String
   , addInitialStock : Bool
   , initialStock : Int
+  , itemStockIns : ItemStockInsView
+  , stockIn : StockIn
   }
+
+initialItemStockInsView : ItemStockInsView
+initialItemStockInsView =
+  { item = initialItem
+  , stockIns = []
+  }
+
+type alias ItemStockInsView =
+  { item : Item
+  , stockIns : List StockIn
+  }
+
+itemStockInsViewDecoder : Decoder ItemStockInsView
+itemStockInsViewDecoder =
+  Decode.succeed ItemStockInsView
+    |> required "item" itemDecoder
+    |> required "stockIns" (Decode.list stockInDecoder)
 
 type alias TransactionModel =
   { requestStatus : RequestStatus
@@ -297,6 +316,16 @@ type alias StockIn =
   , qty : Int
   , updatedAt: String
   , createdAt: String
+  }
+
+initialStockIn : StockIn
+initialStockIn =
+  { id = 0
+  , uid = ""
+  , itemId = 0
+  , qty = 0
+  , updatedAt = ""
+  , createdAt = ""
   }
 
 stockInDecoder : Decoder StockIn
@@ -546,6 +575,8 @@ init flag url key =
       , searchInput = ""
       , addInitialStock = False
       , initialStock = 0
+      , itemStockIns = initialItemStockInsView
+      , stockIn = initialStockIn
       }
 
     initialModel : Model 
@@ -624,7 +655,7 @@ type Msg
   | SaveItem
   | SavedItem (Result Http.Error String)
   -- Stockin
-  | GotItemStockIns (Result Http.Error (List StockIn))
+  | GotItemStockInsView (Result Http.Error ItemStockInsView)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -932,7 +963,6 @@ update msg model =
     InsertItemToList ->
       let
         ( newUuid, newSeed ) = Random.step Uuid.uuidGenerator model.seed
-
         transactionState = model.transactionState
         transactionView = transactionState.transactionView
         itemTransactions = transactionView.itemTransactions
@@ -995,9 +1025,20 @@ update msg model =
     SaveTransaction ->
       -- TODO: Save Transaction
       let
+        transaction = model.transactionState.transactionView.transaction
+
+        projectId =
+          case model.transactionState.projectTransactionsView.project of
+            Just project ->
+              project.id
+            
+            _ ->
+              0
+
+        newTransaction = { transaction | projectId = projectId } 
         transactionPostBody : TransactionPostBody
         transactionPostBody =
-          { transaction = model.transactionState.transactionView.transaction
+          { transaction = newTransaction
           , itemTransactions = model.transactionState.transactionView.itemTransactions
           , itemTransactionDeleteIds = model.transactionState.itemTransactionDeleteIds
           } 
@@ -1162,13 +1203,22 @@ update msg model =
           in  
           ( { model | itemState = newItemState }, Cmd.none )
 
-    GotItemStockIns res ->
+    GotItemStockInsView res ->
+      let
+        itemState = model.itemState 
+      in
       case res of
-        Ok stockIns ->
-          ( model, Cmd.none )
+        Ok itemStockInsView ->
+          let
+            newItemState = { itemState | itemStockIns = itemStockInsView, requestStatus = Success }
+          in
+          ( { model | itemState = newItemState }, Cmd.none )
 
         _ ->
-          ( model, Cmd.none  )
+          let
+            newItemState = { itemState | requestStatus = Error }
+          in
+          ( { model | itemState = newItemState }, Cmd.none  )
 
 -- SUBSCRIPTIONS
 
@@ -1267,8 +1317,45 @@ stockInPage : Model -> String -> Html Msg
 stockInPage model stockInId =
   div [] 
     [ navbar model
-    , text "Stock in page" 
+    , div []
+        [ div [ class "d-flex" ]
+            [ a [ href "/#/items" ]
+                [ Button.button [ Button.secondary ] [ text <| "Back" ] ]
+            , if model.itemState.requestStatus == Loading then
+                Spinner.spinner [] []
+              else
+                span [] []
+            ]
+        , h3 [ class "d-flex justify-content-center" ] [ text <| "Stock-ins: " ++ model.itemState.itemStockIns.item.name ]
+        , div []
+            [ Form.form []
+                [ Form.group []
+                    [ Form.label [ for "stockinqty" ] [ text "Stock in qty" ]
+                    , Input.number 
+                        [ Input.id "stockinqty" 
+                        , Input.placeholder "Qty..."
+                        ]
+                    ]
+                , div [] [ Button.button [ Button.primary ] [ text "Add" ] ]
+                ]
+            ]
+        , div []
+            [ ListGroup.ul (List.map stockInCard model.itemState.itemStockIns.stockIns)
+            ]
+        ]
     ]
+
+stockInCard : StockIn -> ListGroup.Item Msg
+stockInCard stockIn =
+  ListGroup.li []
+    [ div [ class "d-flex justify-content-between" ] 
+        [ h3 [] [ text <| "x " ++ String.fromInt stockIn.qty ]
+        , Button.button [ Button.danger, Button.small ] [ text "Delete" ] ]
+    , div [ class "d-flex justify-content-between align-items-center" ]
+        [ div [] [ text <| stockIn.createdAt ]
+        ]
+    ]
+  
 transactionPage : Model -> Html Msg
 transactionPage model =
   let
@@ -1885,14 +1972,18 @@ fetchByUrl model =
             ( { model | transactionState = newTransactionState }, Cmd.none )
 
     StockInPage itemId ->
-      ( model
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+      ( { model | itemState = newItemState }
       , Cmd.batch
           [ Http.request
               { method = "GET"
               , headers = []
               , url = model.baseUrl ++ "/items/" ++ itemId ++ "/stockins"
               , body = Http.emptyBody
-              , expect = Http.expectJson GotItemStockIns (Decode.list stockInDecoder) 
+              , expect = Http.expectJson GotItemStockInsView itemStockInsViewDecoder 
               , timeout = Nothing
               , tracker = Nothing
               }

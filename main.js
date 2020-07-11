@@ -6066,6 +6066,7 @@ var $elm$http$Http$expectJson = F2(
 				}));
 	});
 var $author$project$Main$initialItem = {createdAt: '', description: '', id: 0, manufacturingPrice: 0, name: '', price: 0, uid: '', updatedAt: ''};
+var $author$project$Main$initialItemStockInsView = {item: $author$project$Main$initialItem, stockIns: _List_Nil};
 var $author$project$Main$initialProject = {createdAt: '', id: 0, name: '', startDate: '', uid: '', updatedAt: ''};
 var $elm$random$Random$Seed = F2(
 	function (a, b) {
@@ -6123,6 +6124,7 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$initialState = function (toMsg) {
 		state,
 		A2($rundis$elm_bootstrap$Bootstrap$Navbar$initWindowSize, toMsg, state));
 };
+var $author$project$Main$initialStockIn = {createdAt: '', id: 0, itemId: 0, qty: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialItemTransaction = {createdAt: '', id: 0, itemId: 0, qty: 0, transactionId: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialProjectTransationsView = {project: $elm$core$Maybe$Nothing, transactions: _List_Nil};
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area = F4(
@@ -6367,7 +6369,7 @@ var $author$project$Main$init = F3(
 	function (flag, url, key) {
 		var initialProjectsView = {projects: _List_Nil, totalIncome: 0};
 		var initialProjectModel = {project: $author$project$Main$initialProject, projects: initialProjectsView, requestStatus: $author$project$Main$NotAsked};
-		var initialItemModel = {addInitialStock: false, initialStock: 0, item: $author$project$Main$initialItem, itemStockViews: _List_Nil, requestStatus: $author$project$Main$NotAsked, searchInput: ''};
+		var initialItemModel = {addInitialStock: false, initialStock: 0, item: $author$project$Main$initialItem, itemStockIns: $author$project$Main$initialItemStockInsView, itemStockViews: _List_Nil, requestStatus: $author$project$Main$NotAsked, searchInput: '', stockIn: $author$project$Main$initialStockIn};
 		var _v0 = $rundis$elm_bootstrap$Bootstrap$Navbar$initialState($author$project$Main$NavbarMsg);
 		var navbarState = _v0.a;
 		var navbarCmd = _v0.b;
@@ -7023,8 +7025,8 @@ var $elm$http$Http$expectString = function (toMsg) {
 var $author$project$Main$GotItem = function (a) {
 	return {$: 'GotItem', a: a};
 };
-var $author$project$Main$GotItemStockIns = function (a) {
-	return {$: 'GotItemStockIns', a: a};
+var $author$project$Main$GotItemStockInsView = function (a) {
+	return {$: 'GotItemStockInsView', a: a};
 };
 var $author$project$Main$GotItems = function (a) {
 	return {$: 'GotItems', a: a};
@@ -7076,6 +7078,48 @@ var $author$project$Main$itemDecoder = A3(
 								'id',
 								$elm$json$Json$Decode$int,
 								$elm$json$Json$Decode$succeed($author$project$Main$Item)))))))));
+var $author$project$Main$ItemStockInsView = F2(
+	function (item, stockIns) {
+		return {item: item, stockIns: stockIns};
+	});
+var $author$project$Main$StockIn = F6(
+	function (id, uid, itemId, qty, updatedAt, createdAt) {
+		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, uid: uid, updatedAt: updatedAt};
+	});
+var $author$project$Main$stockInDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'created_at',
+	$elm$json$Json$Decode$string,
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'updated_at',
+		$elm$json$Json$Decode$string,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'qty',
+			$elm$json$Json$Decode$int,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+				'itemId',
+				$elm$json$Json$Decode$int,
+				A3(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+					'uid',
+					$elm$json$Json$Decode$string,
+					A3(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+						'id',
+						$elm$json$Json$Decode$int,
+						$elm$json$Json$Decode$succeed($author$project$Main$StockIn)))))));
+var $author$project$Main$itemStockInsViewDecoder = A3(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+	'stockIns',
+	$elm$json$Json$Decode$list($author$project$Main$stockInDecoder),
+	A3(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+		'item',
+		$author$project$Main$itemDecoder,
+		$elm$json$Json$Decode$succeed($author$project$Main$ItemStockInsView)));
 var $author$project$Main$ItemStockView = F2(
 	function (item, inStock) {
 		return {inStock: inStock, item: item};
@@ -7248,35 +7292,6 @@ var $author$project$Main$projectsViewDecoder = A3(
 		'projects',
 		$elm$json$Json$Decode$list($author$project$Main$projectViewDecoder),
 		$elm$json$Json$Decode$succeed($author$project$Main$ProjectsView)));
-var $author$project$Main$StockIn = F6(
-	function (id, uid, itemId, qty, updatedAt, createdAt) {
-		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, uid: uid, updatedAt: updatedAt};
-	});
-var $author$project$Main$stockInDecoder = A3(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-	'created_at',
-	$elm$json$Json$Decode$string,
-	A3(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-		'updated_at',
-		$elm$json$Json$Decode$string,
-		A3(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-			'qty',
-			$elm$json$Json$Decode$int,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-				'itemId',
-				$elm$json$Json$Decode$int,
-				A3(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-					'uid',
-					$elm$json$Json$Decode$string,
-					A3(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'id',
-						$elm$json$Json$Decode$int,
-						$elm$json$Json$Decode$succeed($author$project$Main$StockIn)))))));
 var $author$project$Main$TransactionView = F3(
 	function (transaction, itemTransactions, totalPrice) {
 		return {itemTransactions: itemTransactions, totalPrice: totalPrice, transaction: transaction};
@@ -7674,18 +7689,21 @@ var $author$project$Main$fetchByUrl = function (model) {
 			}
 		case 'StockInPage':
 			var itemId = page.a;
+			var itemState = model.itemState;
+			var newItemState = _Utils_update(
+				itemState,
+				{requestStatus: $author$project$Main$Loading});
 			return _Utils_Tuple2(
-				model,
+				_Utils_update(
+					model,
+					{itemState: newItemState}),
 				$elm$core$Platform$Cmd$batch(
 					_List_fromArray(
 						[
 							$elm$http$Http$request(
 							{
 								body: $elm$http$Http$emptyBody,
-								expect: A2(
-									$elm$http$Http$expectJson,
-									$author$project$Main$GotItemStockIns,
-									$elm$json$Json$Decode$list($author$project$Main$stockInDecoder)),
+								expect: A2($elm$http$Http$expectJson, $author$project$Main$GotItemStockInsView, $author$project$Main$itemStockInsViewDecoder),
 								headers: _List_Nil,
 								method: 'GET',
 								timeout: $elm$core$Maybe$Nothing,
@@ -8924,10 +8942,23 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none);
 			case 'SaveTransaction':
 				var transactionState = model.transactionState;
-				var transactionPostBody = {itemTransactionDeleteIds: model.transactionState.itemTransactionDeleteIds, itemTransactions: model.transactionState.transactionView.itemTransactions, transaction: model.transactionState.transactionView.transaction};
+				var transaction = model.transactionState.transactionView.transaction;
+				var projectId = function () {
+					var _v15 = model.transactionState.projectTransactionsView.project;
+					if (_v15.$ === 'Just') {
+						var project = _v15.a;
+						return project.id;
+					} else {
+						return 0;
+					}
+				}();
 				var newTransactionState = _Utils_update(
 					transactionState,
 					{requestStatus: $author$project$Main$Loading});
+				var newTransaction = _Utils_update(
+					transaction,
+					{projectId: projectId});
+				var transactionPostBody = {itemTransactionDeleteIds: model.transactionState.itemTransactionDeleteIds, itemTransactions: model.transactionState.transactionView.itemTransactions, transaction: newTransaction};
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -8956,9 +8987,9 @@ var $author$project$Main$update = F2(
 								[
 									A2($elm$browser$Browser$Navigation$pushUrl, newModel.key, '/#/transactions'),
 									function () {
-									var _v16 = model.transactionState.projectTransactionsView.project;
-									if (_v16.$ === 'Just') {
-										var project = _v16.a;
+									var _v17 = model.transactionState.projectTransactionsView.project;
+									if (_v17.$ === 'Just') {
+										var project = _v17.a;
 										return $elm$http$Http$get(
 											{
 												expect: A2($elm$http$Http$expectJson, $author$project$Main$GotProjectTransaction, $author$project$Main$projectTransactionsViewDecoder),
@@ -9138,11 +9169,26 @@ var $author$project$Main$update = F2(
 				}
 			default:
 				var res = msg.a;
+				var itemState = model.itemState;
 				if (res.$ === 'Ok') {
-					var stockIns = res.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var itemStockInsView = res.a;
+					var newItemState = _Utils_update(
+						itemState,
+						{itemStockIns: itemStockInsView, requestStatus: $author$project$Main$Success});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{itemState: newItemState}),
+						$elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					var newItemState = _Utils_update(
+						itemState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{itemState: newItemState}),
+						$elm$core$Platform$Cmd$none);
 				}
 		}
 	});
@@ -12244,6 +12290,57 @@ var $author$project$Main$projectPage = function (model) {
 					]))
 			]));
 };
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Number = {$: 'Number'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$number = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Number);
+var $author$project$Main$stockInCard = function (stockIn) {
+	return A2(
+		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('d-flex justify-content-between')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h3,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'x ' + $elm$core$String$fromInt(stockIn.qty))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Button$button,
+						_List_fromArray(
+							[$rundis$elm_bootstrap$Bootstrap$Button$danger, $rundis$elm_bootstrap$Bootstrap$Button$small]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('d-flex justify-content-between align-items-center')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(stockIn.createdAt)
+							]))
+					]))
+			]));
+};
 var $author$project$Main$stockInPage = F2(
 	function (model, stockInId) {
 		return A2(
@@ -12252,7 +12349,105 @@ var $author$project$Main$stockInPage = F2(
 			_List_fromArray(
 				[
 					$author$project$Main$navbar(model),
-					$elm$html$Html$text('Stock in page')
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('d-flex')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$a,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$href('/#/items')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$rundis$elm_bootstrap$Bootstrap$Button$button,
+											_List_fromArray(
+												[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Back')
+												]))
+										])),
+									_Utils_eq(model.itemState.requestStatus, $author$project$Main$Loading) ? A2($rundis$elm_bootstrap$Bootstrap$Spinner$spinner, _List_Nil, _List_Nil) : A2($elm$html$Html$span, _List_Nil, _List_Nil)
+								])),
+							A2(
+							$elm$html$Html$h3,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('d-flex justify-content-center')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Stock-ins: ' + model.itemState.itemStockIns.item.name)
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Form$form,
+									_List_Nil,
+									_List_fromArray(
+										[
+											A2(
+											$rundis$elm_bootstrap$Bootstrap$Form$group,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$rundis$elm_bootstrap$Bootstrap$Form$label,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$for('stockinqty')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Stock in qty')
+														])),
+													$rundis$elm_bootstrap$Bootstrap$Form$Input$number(
+													_List_fromArray(
+														[
+															$rundis$elm_bootstrap$Bootstrap$Form$Input$id('stockinqty'),
+															$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Qty...')
+														]))
+												])),
+											A2(
+											$elm$html$Html$div,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$rundis$elm_bootstrap$Bootstrap$Button$button,
+													_List_fromArray(
+														[$rundis$elm_bootstrap$Bootstrap$Button$primary]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Add')
+														]))
+												]))
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$ListGroup$ul(
+									A2($elm$core$List$map, $author$project$Main$stockInCard, model.itemState.itemStockIns.stockIns))
+								]))
+						]))
 				]));
 	});
 var $author$project$Main$ChangeCustomPrice = function (a) {
@@ -12409,8 +12604,6 @@ var $author$project$Main$itemTransactionCard = function (itemTransactionView) {
 					]))
 			]));
 };
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$Number = {$: 'Number'};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$number = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Number);
 var $author$project$Main$transactionDetailMainPage = F2(
 	function (model, transactionId) {
 		var transactionView = model.transactionState.transactionView;
