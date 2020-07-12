@@ -7,6 +7,8 @@ Rewrite of `cozypos-frontend` formerly from Vue, to Elm.
 2. Compile
 ```bash
 elm make src/Main.elm --output=main.js
+# or
+./start.sh
 ```
 3. Serve with simple HTTP Server
 ```bash
