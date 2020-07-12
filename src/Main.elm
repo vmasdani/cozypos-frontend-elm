@@ -653,7 +653,6 @@ init flag url key =
       , apiKey = flag.apiKey
       }
   in
-  (Debug.log <| Debug.toString flag)
   ( initialModel
   , Cmd.batch 
       [ navbarCmd
@@ -863,11 +862,9 @@ update msg model =
             projectState = model.projectState
             newProjectState = { projectState | projects = projectViews, requestStatus = Success }
           in
-          (Debug.log <| Debug.toString newProjectState)
           ( { model | projectState = newProjectState }, Cmd.none )
 
         Err e ->
-          (Debug.log <| "Error decoding project views" ++ Debug.toString e)
           ( model, Cmd.none )
 
     GotProject res ->
@@ -877,7 +874,6 @@ update msg model =
             projectState = model.projectState
             newProjectState = { projectState | project = project }
           in
-          (Debug.log <| Debug.toString project)
           ( { model | projectState = newProjectState }, Cmd.none )
 
         Err _ ->
@@ -925,7 +921,6 @@ update msg model =
         startDate = if project.startDate == "" then model.currentDate else project.startDate
         parsedProject = { project | startDate = String.slice 0 10 startDate }
       in
-      (Debug.log <| Debug.toString parsedProject)
       ( model
       , sendRequest
           model.baseUrl
@@ -968,7 +963,6 @@ update msg model =
           let
             newTransactionState = { transactionState | requestStatus = Error }
           in
-          (Debug.log <| Debug.toString e)
           ( { model | transactionState = newTransactionState}, Cmd.none )
 
     GotTransaction res ->
@@ -1001,7 +995,6 @@ update msg model =
               , transactionView = transactionView 
               }
           in
-          (Debug.log <| Debug.toString transactionView)
           ( { model | transactionState = newTransactionState }, Cmd.none )
 
         Err _ ->
@@ -1310,7 +1303,6 @@ update msg model =
         itemState = model.itemState
         newItemState = { itemState | requestStatus = Loading }
       in
-      (Debug.log "Save item!")
       ( { model | itemState = newItemState }
       , sendRequest 
           model.baseUrl
@@ -1642,7 +1634,6 @@ transactionPage model =
         [ if model.transactionState.requestStatus == Loading then
             Spinner.spinner [] []
           else  
-            -- text <| Debug.toString model.transactionState.projects 
             span [] []
         ]
     , div []
@@ -1976,7 +1967,6 @@ itemDetailPage model itemId =
               span [] []
           ]
       , div [] [ text <| "Item id: " ++ itemId ]
-      -- , div [] [ text <| Debug.toString model.itemState.item ]
       , div [ class "mx-1" ]
           [ Form.group []
               [ Form.label [ for "name" ] [ text "Name" ]
@@ -2089,7 +2079,6 @@ projectDetailPage model projectId =
     , div []
         [ a [ href "/#/projects" ] [ Button.button [ Button.secondary ] [ text "Back" ]  ] ]
     -- , text ("This is the project detail page, project id: " ++ projectId)
-    -- , div [] [ text <| Debug.toString model.projectState.project ]
     -- , div [] [ text "Some form" ]
     , div []
         [ Form.form [ class "m-2" ]

@@ -8,7 +8,12 @@ Rewrite of `cozypos-frontend` formerly from Vue, to Elm.
 ```bash
 elm make src/Main.elm --output=main.js
 # or
+sudo chmod +x ./start.sh
 ./start.sh
+# To optimize:
+sudo chmod +x ./optimize.sh
+sudo npm i -g uglify-js
+./optimize.sh
 ```
 3. Serve with simple HTTP Server
 ```bash
