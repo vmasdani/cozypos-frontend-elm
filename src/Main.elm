@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
 import Browser.Hash as Hash
@@ -10,6 +10,7 @@ import Url
 import Url.Parser as Url exposing (Parser, (</>))
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Spinner as Spinner
+import Bootstrap.Grid as Grid
 import Bootstrap.Button as Button
 import Bootstrap.Dropdown as Dropdown
 import Bootstrap.Form as Form
@@ -34,7 +35,20 @@ type alias Flag =
   { baseUrl : String
   , currentDate : String
   , seed : Int
+  , apiKey : Maybe String
   }
+
+type alias LoginInfo =
+  { username : String
+  , password : String
+  }
+
+loginInfoEncoder : LoginInfo -> Encode.Value
+loginInfoEncoder loginInfo =
+  Encode.object
+    [ ( "username", Encode.string loginInfo.username )
+    , ( "password", Encode.string loginInfo.password )
+    ]
 
 main : Program Flag Model Msg
 main =
@@ -47,7 +61,12 @@ main =
     , onUrlRequest = LinkClicked
     }
 
+-- PORTS
 
+port logout : () -> Cmd msg
+port deleteStockInAlert : StockIn -> Cmd msg
+port deleteStockIn : (String -> msg) -> Sub msg
+port setApiKey : (Maybe String) -> Cmd msg
 
 -- PAGE
 type Page
@@ -80,6 +99,7 @@ type alias Model =
   { key : Nav.Key
   , url : Url.Url
   , currentDate : String
+  , loginState : LoginModel
   , baseUrl : String
   , loggedIn : Bool
   , navbarState : Navbar.State
@@ -87,6 +107,24 @@ type alias Model =
   , transactionState : TransactionModel
   , itemState : ItemModel 
   , seed : Seed
+  , apiKey : Maybe String
+  }
+
+type alias LoginModel =
+  { loginInfo : LoginInfo
+  , requestStatus : RequestStatus
+  }
+  
+initialLoginInfo : LoginInfo
+initialLoginInfo =
+  { username = ""
+  , password = ""
+  }
+
+initialLoginModel : LoginModel
+initialLoginModel =
+  { loginInfo = initialLoginInfo
+  , requestStatus = NotAsked
   }
 
 type alias ProjectModel =
@@ -312,6 +350,7 @@ transactionEncoder transaction =
 type alias StockIn = 
   { id : Int
   , uid : String
+  , pic : String
   , itemId: Int
   , qty : Int
   , updatedAt: String
@@ -322,6 +361,7 @@ initialStockIn : StockIn
 initialStockIn =
   { id = 0
   , uid = ""
+  , pic = ""
   , itemId = 0
   , qty = 0
   , updatedAt = ""
@@ -333,10 +373,21 @@ stockInDecoder =
   Decode.succeed StockIn
     |> required "id" int
     |> required "uid" string
+    |> required "pic" string
     |> required "itemId" int
     |> required "qty" int
     |> required "updated_at" string
     |> required "created_at" string
+stockInEncoder : StockIn -> Encode.Value
+stockInEncoder stockIn =
+  Encode.object
+    [ ( "id", Encode.int stockIn.id )
+    , ( "uid", Encode.string stockIn.uid )
+    , ( "pic", Encode.string stockIn.pic )
+    , ( "itemId", Encode.int stockIn.itemId )
+    , ( "qty", Encode.int stockIn.qty ) 
+    ]
+
 type alias ItemTransaction =
   { id : Int
   , uid : String
@@ -578,6 +629,13 @@ init flag url key =
       , itemStockIns = initialItemStockInsView
       , stockIn = initialStockIn
       }
+    loggedIn =
+      case flag.apiKey of
+        Just _ ->
+          True
+
+        _ ->
+          False
 
     initialModel : Model 
     initialModel =
@@ -585,15 +643,17 @@ init flag url key =
       , url = url
       , baseUrl = flag.baseUrl
       , currentDate = flag.currentDate
-      , loggedIn = False
+      , loggedIn = loggedIn
+      , loginState = initialLoginModel
       , navbarState = navbarState
       , projectState = initialProjectModel
       , transactionState = initialTransactionModel
       , itemState = initialItemModel
       , seed = initialSeed flag.seed
+      , apiKey = flag.apiKey
       }
   in
-  
+  (Debug.log <| Debug.toString flag)
   ( initialModel
   , Cmd.batch 
       [ navbarCmd
@@ -608,6 +668,7 @@ init flag url key =
 
 
 
+
 -- UPDATE
 
 
@@ -615,8 +676,13 @@ type Msg
   = LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
   | NavbarMsg Navbar.State
+  -- Auth
   | Login
+  | ChangeLoginUsername String 
+  | ChangeLoginPassword String
+  | GotLoginResponse (Result Http.Error String)
   | Logout
+  -- Project & Transaction
   | ToggleProject Dropdown.State
   | SelectProject Project
   | GotProject (Result Http.Error (Project))
@@ -656,6 +722,11 @@ type Msg
   | SavedItem (Result Http.Error String)
   -- Stockin
   | GotItemStockInsView (Result Http.Error ItemStockInsView)
+  | AddStockIn
+  | SavedStockIns (Result Http.Error ())
+  | ChangeStockInQty String
+  | DeleteStockInAlert StockIn
+  | DeleteStockIn String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -672,10 +743,74 @@ update msg model =
       fetchByUrl { model | url = url  }
 
     Login ->
-      fetchByUrl { model | loggedIn = True }
+      let
+        loginState = model.loginState
+        newLoginState = { loginState | requestStatus = Loading }
+      in
+      ( { model | loginState = newLoginState }
+      , Http.request
+          { method = "POST"
+          , headers = []
+          , url = model.baseUrl ++ "/login"
+          , body = Http.jsonBody (loginInfoEncoder model.loginState.loginInfo)
+          , expect = Http.expectString GotLoginResponse
+          , timeout = Nothing
+          , tracker = Nothing
+          }
+      )
+      -- fetchByUrl { model | loggedIn = True }
+
+    ChangeLoginUsername username ->
+      let
+        loginState = model.loginState
+        loginInfo = loginState.loginInfo
+        newLoginInfo = { loginInfo | username = username }
+        newLoginState = { loginState | loginInfo = newLoginInfo }
+      in
+      ( { model | loginState = newLoginState }, Cmd.none )
+
+    ChangeLoginPassword password ->
+      let
+        loginState = model.loginState
+        loginInfo = loginState.loginInfo
+        newLoginInfo = { loginInfo | password = password }
+        newLoginState = { loginState | loginInfo = newLoginInfo }
+      in
+      ( { model | loginState = newLoginState }, Cmd.none )
+
+    GotLoginResponse res ->
+      case res of
+        Ok apiKey ->
+          let
+            loginState = model.loginState
+            newLoginState = { loginState | requestStatus = Success }
+            newModel = 
+              { model 
+              | apiKey = Just apiKey 
+              , loginState = newLoginState
+              , loggedIn = True
+              }
+          in
+          ( newModel
+          , Cmd.batch
+              [ setApiKey (Just apiKey)
+              ]
+          )
+        
+        Err _ ->
+          let
+            loginState = model.loginState
+            newLoginState = { loginState | requestStatus = Error }
+          in
+          ( { model | loginState = newLoginState }, Cmd.none )
 
     Logout ->
-      ( { model | loggedIn = False }, Cmd.none )
+      ( { model 
+        | loggedIn = False 
+        , apiKey = Nothing
+        }
+      , setApiKey Nothing
+      )
 
     NavbarMsg state -> 
       ( { model | navbarState = state }, Cmd.none )
@@ -1210,7 +1345,14 @@ update msg model =
       case res of
         Ok itemStockInsView ->
           let
-            newItemState = { itemState | itemStockIns = itemStockInsView, requestStatus = Success }
+            stockIn = model.itemState.stockIn
+            newStockIn = { stockIn | itemId = itemStockInsView.item.id }
+            newItemState = 
+              { itemState 
+              | itemStockIns = itemStockInsView
+              , stockIn = newStockIn
+              , requestStatus = Success 
+              }
           in
           ( { model | itemState = newItemState }, Cmd.none )
 
@@ -1219,6 +1361,74 @@ update msg model =
             newItemState = { itemState | requestStatus = Error }
           in
           ( { model | itemState = newItemState }, Cmd.none  )
+    
+    AddStockIn ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+      ( { model | itemState = newItemState }
+      , Http.request
+          { method = "POST"
+          , headers = []
+          , url = model.baseUrl ++ "/stockins"
+          , body = Http.jsonBody <| stockInEncoder model.itemState.stockIn
+          , expect = Http.expectWhatever SavedStockIns
+          , timeout = Nothing
+          , tracker = Nothing
+          }
+      )
+
+    SavedStockIns res ->
+      case res of
+        Ok _ ->
+          ( model
+          , Http.request
+              { method = "GET"
+              , headers = []
+              , url = model.baseUrl ++ "/items/" ++ String.fromInt model.itemState.itemStockIns.item.id ++ "/stockins"
+              , body = Http.emptyBody
+              , expect = Http.expectJson GotItemStockInsView itemStockInsViewDecoder
+              , timeout = Nothing
+              , tracker = Nothing
+              }
+          )
+
+        Err _ ->
+          ( model, Cmd.none )
+      
+    ChangeStockInQty qtyString ->
+      let
+        parsedQty = Maybe.withDefault 0 (String.toInt qtyString)
+
+        itemState = model.itemState
+        stockIn = itemState.stockIn
+
+        newStockIn = { stockIn | qty = parsedQty }
+        newItemState = { itemState | stockIn = newStockIn }
+      in
+      ( { model | itemState = newItemState }, Cmd.none )
+
+    DeleteStockInAlert stockIn ->
+      ( model, deleteStockInAlert stockIn )
+
+    DeleteStockIn idString ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | requestStatus = Loading }
+      in
+
+      ( { model | itemState = newItemState }
+      , Http.request
+          { method = "DELETE"
+          , headers = []
+          , url = model.baseUrl ++ "/stockins/" ++ idString
+          , body = Http.emptyBody
+          , expect = Http.expectWhatever SavedStockIns
+          , timeout = Nothing
+          , tracker = Nothing
+          }
+      )
 
 -- SUBSCRIPTIONS
 
@@ -1228,6 +1438,7 @@ subscriptions model =
   Sub.batch 
     [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject 
     , Navbar.subscriptions model.navbarState NavbarMsg
+    , deleteStockIn DeleteStockIn
     ]
 
 -- VIEW
@@ -1271,15 +1482,43 @@ view model =
   { title = "Cozy PoS | " ++ title
   , body =
       [ body
-      , text "The current URL is: "
-      , b [] [ text (Url.toString model.url) ]
+      -- , text "The current URL is: "
+      -- , b [] [ text (Url toString model.url) ]
       ]
   }
 
 loginPage : Model -> Html Msg
 loginPage model =
   div [ class "d-flex flex-column w-100 justify-content-center align-items-center bg-dark", style "height" "100vh" ]
-    [ h3 [ class "text-white" ] [ text "Cozy PoS" ]    
+    [ h3 [ class "text-white" ] [ text "Cozy PoS" ]
+    , Form.form []
+        [ Form.group []
+            [ Input.text
+                [ Input.placeholder "Username..."
+                , Input.attrs [ class "m-2" ] 
+                , Input.value model.loginState.loginInfo.username
+                , Input.onInput ChangeLoginUsername
+                ]
+            , Input.password
+                [ Input.placeholder "Password..."
+                , Input.attrs [ class "m-2" ] 
+                , Input.value model.loginState.loginInfo.password
+                , Input.onInput ChangeLoginPassword
+                ]
+            ]
+        ]
+    -- , Grid.container []
+    --     [div [ class "text-wrap" ] [ text "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahelloworld" ] 
+    --     ]
+    -- , div [ class "text-white text-wrap" ] [ text <| "Apikey: " ++ Maybe.withDefault "" model.apiKey ]
+    , div [] 
+        [ if model.loginState.requestStatus == Loading then
+            Spinner.spinner [ Spinner.color Text.light ] []
+          else if model.loginState.requestStatus == Error then
+            div [ style "color" "red", class "d-flex justify-content-center" ] [ text <| "Error logging in, invalid username/password." ]
+          else
+            span [] []
+        ]
     , div [] [ Button.button [ Button.onClick Login, Button.light ] [ text "Login" ] ]
     ]
 
@@ -1334,9 +1573,16 @@ stockInPage model stockInId =
                     , Input.number 
                         [ Input.id "stockinqty" 
                         , Input.placeholder "Qty..."
+                        , Input.onInput ChangeStockInQty
                         ]
                     ]
-                , div [] [ Button.button [ Button.primary ] [ text "Add" ] ]
+                , div [] 
+                    [ Button.button 
+                        [ Button.primary 
+                        , Button.onClick AddStockIn
+                        ] 
+                        [ text "Add" ] 
+                    ]
                 ]
             ]
         , div []
@@ -1350,7 +1596,13 @@ stockInCard stockIn =
   ListGroup.li []
     [ div [ class "d-flex justify-content-between" ] 
         [ h3 [] [ text <| "x " ++ String.fromInt stockIn.qty ]
-        , Button.button [ Button.danger, Button.small ] [ text "Delete" ] ]
+        , Button.button 
+            [ Button.danger, Button.small 
+            -- , Button.onClick (DeleteStockIn <| String.fromInt stockIn.id)
+            , Button.onClick <| DeleteStockInAlert stockIn
+            ]
+            [ text "Delete" ] 
+        ]
     , div [ class "d-flex justify-content-between align-items-center" ]
         [ div [] [ text <| stockIn.createdAt ]
         ]
@@ -1835,10 +2087,10 @@ projectDetailPage model projectId =
   div []
     [ navbar model
     , div []
-        [ a [ href "/#/projects" ] [ text "Back" ] ]
-    , text ("This is the project detail page, project id: " ++ projectId)
-    , div [] [ text <| Debug.toString model.projectState.project ]
-    , div [] [ text "Some form" ]
+        [ a [ href "/#/projects" ] [ Button.button [ Button.secondary ] [ text "Back" ]  ] ]
+    -- , text ("This is the project detail page, project id: " ++ projectId)
+    -- , div [] [ text <| Debug.toString model.projectState.project ]
+    -- , div [] [ text "Some form" ]
     , div []
         [ Form.form [ class "m-2" ]
             [ Form.group []
@@ -1867,7 +2119,7 @@ projectDetailPage model projectId =
 filterByItemTransactionName : String -> TransactionView -> Bool
 filterByItemTransactionName name transactionView =
   let
-    names = List.foldl (\itemTransaction acc -> acc ++ itemTransaction.item.name) "" transactionView.itemTransactions
+    names = List.foldl (\itemTransaction acc -> acc ++ String.toLower itemTransaction.item.name) "" transactionView.itemTransactions
   in
     String.contains name names
 sendRequest : String -> String -> String -> Http.Body -> Http.Expect msg -> Cmd msg

@@ -39,9 +39,37 @@
       flags: {
         baseUrl: 'http://localhost:8080',
         currentDate: getYmd(new Date()),
-        seed: Math.floor(Math.random()*0x0FFFFFFF)
+        seed: Math.floor(Math.random()*0x0FFFFFFF),
+        apiKey: localStorage.getItem('apiKey')
       }
     });
+
+    console.log('App:', app);
+
+    app.ports.deleteStockInAlert.subscribe(function(stockIn) {
+      console.log('Stock in:', stockIn);
+
+      const confirmed = confirm('Delete stock in with qty ' + stockIn.qty + '?');
+
+      console.log('Confirmation: ', confirmed);
+
+      if(confirmed) {
+        app.ports.deleteStockIn.send(stockIn.id.toString());
+      }
+    });
+
+    app.ports.setApiKey.subscribe(function(apiKey) {
+      if(apiKey) {
+        localStorage.setItem("apiKey", apiKey); 
+      } else {
+        localStorage.removeItem("apiKey");
+      }
+    });
+
+    // app.ports.testAlert.subscribe(function() {
+    //   console.log("Clicked.");
+    //   alert("Clicked!");
+    // });
   </script>
 </body>
 </html>

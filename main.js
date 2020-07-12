@@ -4584,9 +4584,13 @@ function _Url_percentDecode(string)
 	{
 		return $elm$core$Maybe$Nothing;
 	}
-}var $author$project$Main$LinkClicked = function (a) {
+}var $elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
+var $author$project$Main$LinkClicked = function (a) {
 	return {$: 'LinkClicked', a: a};
 };
+var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $author$project$Main$UrlChanged = function (a) {
 	return {$: 'UrlChanged', a: a};
 };
@@ -4693,10 +4697,6 @@ var $elm$json$Json$Decode$OneOf = function (a) {
 };
 var $elm$core$Basics$False = {$: 'False'};
 var $elm$core$Basics$add = _Basics_add;
-var $elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$String$all = _String_all;
 var $elm$core$Basics$and = _Basics_and;
 var $elm$core$Basics$append = _Utils_append;
@@ -6067,6 +6067,8 @@ var $elm$http$Http$expectJson = F2(
 	});
 var $author$project$Main$initialItem = {createdAt: '', description: '', id: 0, manufacturingPrice: 0, name: '', price: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialItemStockInsView = {item: $author$project$Main$initialItem, stockIns: _List_Nil};
+var $author$project$Main$initialLoginInfo = {password: '', username: ''};
+var $author$project$Main$initialLoginModel = {loginInfo: $author$project$Main$initialLoginInfo, requestStatus: $author$project$Main$NotAsked};
 var $author$project$Main$initialProject = {createdAt: '', id: 0, name: '', startDate: '', uid: '', updatedAt: ''};
 var $elm$random$Random$Seed = F2(
 	function (a, b) {
@@ -6124,7 +6126,7 @@ var $rundis$elm_bootstrap$Bootstrap$Navbar$initialState = function (toMsg) {
 		state,
 		A2($rundis$elm_bootstrap$Bootstrap$Navbar$initWindowSize, toMsg, state));
 };
-var $author$project$Main$initialStockIn = {createdAt: '', id: 0, itemId: 0, qty: 0, uid: '', updatedAt: ''};
+var $author$project$Main$initialStockIn = {createdAt: '', id: 0, itemId: 0, pic: '', qty: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialItemTransaction = {createdAt: '', id: 0, itemId: 0, qty: 0, transactionId: 0, uid: '', updatedAt: ''};
 var $author$project$Main$initialProjectTransationsView = {project: $elm$core$Maybe$Nothing, transactions: _List_Nil};
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$Area = F4(
@@ -6145,6 +6147,7 @@ var $author$project$Main$initialTransaction = {cashier: '', createdAt: '', custo
 var $author$project$Main$initialTransactionView = {itemTransactions: _List_Nil, totalPrice: 0, transaction: $author$project$Main$initialTransaction};
 var $author$project$Main$initialTransactionModel = {foundItems: _List_Nil, itemTransactionDeleteIds: _List_Nil, itemTransactionForm: $author$project$Main$initialItemTransaction, projectTransactionsView: $author$project$Main$initialProjectTransationsView, projects: _List_Nil, projectsDropdown: $rundis$elm_bootstrap$Bootstrap$Dropdown$initialState, requestStatus: $author$project$Main$NotAsked, searchByItem: '', selectedItem: $elm$core$Maybe$Nothing, selectedProject: 'Select Project', transactionView: $author$project$Main$initialTransactionView};
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$Project = F6(
 	function (id, uid, name, startDate, updatedAt, createdAt) {
 		return {createdAt: createdAt, id: id, name: name, startDate: startDate, uid: uid, updatedAt: updatedAt};
@@ -6365,8 +6368,17 @@ var $author$project$Main$sendRequest = F5(
 				url: _Utils_ap(baseUrl, target)
 			});
 	});
+var $elm$core$Debug$toString = _Debug_toString;
 var $author$project$Main$init = F3(
 	function (flag, url, key) {
+		var loggedIn = function () {
+			var _v1 = flag.apiKey;
+			if (_v1.$ === 'Just') {
+				return true;
+			} else {
+				return false;
+			}
+		}();
 		var initialProjectsView = {projects: _List_Nil, totalIncome: 0};
 		var initialProjectModel = {project: $author$project$Main$initialProject, projects: initialProjectsView, requestStatus: $author$project$Main$NotAsked};
 		var initialItemModel = {addInitialStock: false, initialStock: 0, item: $author$project$Main$initialItem, itemStockIns: $author$project$Main$initialItemStockInsView, itemStockViews: _List_Nil, requestStatus: $author$project$Main$NotAsked, searchInput: '', stockIn: $author$project$Main$initialStockIn};
@@ -6374,39 +6386,49 @@ var $author$project$Main$init = F3(
 		var navbarState = _v0.a;
 		var navbarCmd = _v0.b;
 		var initialModel = {
+			apiKey: flag.apiKey,
 			baseUrl: flag.baseUrl,
 			currentDate: flag.currentDate,
 			itemState: initialItemModel,
 			key: key,
-			loggedIn: false,
+			loggedIn: loggedIn,
+			loginState: $author$project$Main$initialLoginModel,
 			navbarState: navbarState,
 			projectState: initialProjectModel,
 			seed: $elm$random$Random$initialSeed(flag.seed),
 			transactionState: $author$project$Main$initialTransactionModel,
 			url: url
 		};
-		return _Utils_Tuple2(
-			initialModel,
-			$elm$core$Platform$Cmd$batch(
-				_List_fromArray(
-					[
-						navbarCmd,
-						A5(
-						$author$project$Main$sendRequest,
-						initialModel.baseUrl,
-						'GET',
-						'/projects',
-						$elm$http$Http$emptyBody,
-						A2(
-							$elm$http$Http$expectJson,
-							$author$project$Main$GotProjects,
-							$elm$json$Json$Decode$list($author$project$Main$projectDecoder)))
-					])));
+		return $elm$core$Debug$log(
+			$elm$core$Debug$toString(flag))(
+			_Utils_Tuple2(
+				initialModel,
+				$elm$core$Platform$Cmd$batch(
+					_List_fromArray(
+						[
+							navbarCmd,
+							A5(
+							$author$project$Main$sendRequest,
+							initialModel.baseUrl,
+							'GET',
+							'/projects',
+							$elm$http$Http$emptyBody,
+							A2(
+								$elm$http$Http$expectJson,
+								$author$project$Main$GotProjects,
+								$elm$json$Json$Decode$list($author$project$Main$projectDecoder)))
+						]))));
 	});
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $author$project$Main$DeleteStockIn = function (a) {
+	return {$: 'DeleteStockIn', a: a};
+};
 var $author$project$Main$ToggleProject = function (a) {
 	return {$: 'ToggleProject', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $author$project$Main$deleteStockIn = _Platform_incomingPort('deleteStockIn', $elm$json$Json$Decode$string);
 var $rundis$elm_bootstrap$Bootstrap$Dropdown$ListenClicks = {$: 'ListenClicks'};
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $elm$browser$Browser$AnimationManager$Time = function (a) {
@@ -6995,10 +7017,17 @@ var $author$project$Main$subscriptions = function (model) {
 		_List_fromArray(
 			[
 				A2($rundis$elm_bootstrap$Bootstrap$Dropdown$subscriptions, model.transactionState.projectsDropdown, $author$project$Main$ToggleProject),
-				A2($rundis$elm_bootstrap$Bootstrap$Navbar$subscriptions, model.navbarState, $author$project$Main$NavbarMsg)
+				A2($rundis$elm_bootstrap$Bootstrap$Navbar$subscriptions, model.navbarState, $author$project$Main$NavbarMsg),
+				$author$project$Main$deleteStockIn($author$project$Main$DeleteStockIn)
 			]));
 };
 var $author$project$Main$Error = {$: 'Error'};
+var $author$project$Main$GotItemStockInsView = function (a) {
+	return {$: 'GotItemStockInsView', a: a};
+};
+var $author$project$Main$GotLoginResponse = function (a) {
+	return {$: 'GotLoginResponse', a: a};
+};
 var $author$project$Main$GotProjectTransaction = function (a) {
 	return {$: 'GotProjectTransaction', a: a};
 };
@@ -7012,21 +7041,82 @@ var $author$project$Main$SavedItem = function (a) {
 var $author$project$Main$SavedProject = function (a) {
 	return {$: 'SavedProject', a: a};
 };
+var $author$project$Main$SavedStockIns = function (a) {
+	return {$: 'SavedStockIns', a: a};
+};
 var $author$project$Main$SavedTransaction = function (a) {
 	return {$: 'SavedTransaction', a: a};
 };
 var $author$project$Main$Success = {$: 'Success'};
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$deleteStockInAlert = _Platform_outgoingPort(
+	'deleteStockInAlert',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'createdAt',
+					$elm$json$Json$Encode$string($.createdAt)),
+					_Utils_Tuple2(
+					'id',
+					$elm$json$Json$Encode$int($.id)),
+					_Utils_Tuple2(
+					'itemId',
+					$elm$json$Json$Encode$int($.itemId)),
+					_Utils_Tuple2(
+					'pic',
+					$elm$json$Json$Encode$string($.pic)),
+					_Utils_Tuple2(
+					'qty',
+					$elm$json$Json$Encode$int($.qty)),
+					_Utils_Tuple2(
+					'uid',
+					$elm$json$Json$Encode$string($.uid)),
+					_Utils_Tuple2(
+					'updatedAt',
+					$elm$json$Json$Encode$string($.updatedAt))
+				]));
+	});
 var $elm$http$Http$expectString = function (toMsg) {
 	return A2(
 		$elm$http$Http$expectStringResponse,
 		toMsg,
 		$elm$http$Http$resolve($elm$core$Result$Ok));
 };
+var $elm$http$Http$expectBytesResponse = F2(
+	function (toMsg, toResult) {
+		return A3(
+			_Http_expect,
+			'arraybuffer',
+			_Http_toDataView,
+			A2($elm$core$Basics$composeR, toResult, toMsg));
+	});
+var $elm$http$Http$expectWhatever = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectBytesResponse,
+		toMsg,
+		$elm$http$Http$resolve(
+			function (_v0) {
+				return $elm$core$Result$Ok(_Utils_Tuple0);
+			}));
+};
 var $author$project$Main$GotItem = function (a) {
 	return {$: 'GotItem', a: a};
-};
-var $author$project$Main$GotItemStockInsView = function (a) {
-	return {$: 'GotItemStockInsView', a: a};
 };
 var $author$project$Main$GotItems = function (a) {
 	return {$: 'GotItems', a: a};
@@ -7082,9 +7172,9 @@ var $author$project$Main$ItemStockInsView = F2(
 	function (item, stockIns) {
 		return {item: item, stockIns: stockIns};
 	});
-var $author$project$Main$StockIn = F6(
-	function (id, uid, itemId, qty, updatedAt, createdAt) {
-		return {createdAt: createdAt, id: id, itemId: itemId, qty: qty, uid: uid, updatedAt: updatedAt};
+var $author$project$Main$StockIn = F7(
+	function (id, uid, pic, itemId, qty, updatedAt, createdAt) {
+		return {createdAt: createdAt, id: id, itemId: itemId, pic: pic, qty: qty, uid: uid, updatedAt: updatedAt};
 	});
 var $author$project$Main$stockInDecoder = A3(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
@@ -7104,13 +7194,17 @@ var $author$project$Main$stockInDecoder = A3(
 				$elm$json$Json$Decode$int,
 				A3(
 					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-					'uid',
+					'pic',
 					$elm$json$Json$Decode$string,
 					A3(
 						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
-						'id',
-						$elm$json$Json$Decode$int,
-						$elm$json$Json$Decode$succeed($author$project$Main$StockIn)))))));
+						'uid',
+						$elm$json$Json$Decode$string,
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+							'id',
+							$elm$json$Json$Decode$int,
+							$elm$json$Json$Decode$succeed($author$project$Main$StockIn))))))));
 var $author$project$Main$itemStockInsViewDecoder = A3(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
 	'stockIns',
@@ -7124,7 +7218,6 @@ var $author$project$Main$ItemStockView = F2(
 	function (item, inStock) {
 		return {inStock: inStock, item: item};
 	});
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$maybe = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
 		_List_fromArray(
@@ -7779,21 +7872,6 @@ var $elm$http$Http$get = function (r) {
 		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
 var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Main$itemEncoder = function (item) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -7840,7 +7918,18 @@ var $elm$http$Http$jsonBody = function (value) {
 		A2($elm$json$Json$Encode$encode, 0, value));
 };
 var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$core$Debug$log = _Debug_log;
+var $author$project$Main$loginInfoEncoder = function (loginInfo) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'username',
+				$elm$json$Json$Encode$string(loginInfo.username)),
+				_Utils_Tuple2(
+				'password',
+				$elm$json$Json$Encode$string(loginInfo.password))
+			]));
+};
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$core$Basics$not = _Basics_not;
 var $elm$http$Http$post = function (r) {
@@ -7879,12 +7968,47 @@ var $author$project$Main$projectTransactionsViewDecoder = A3(
 		$elm$json$Json$Decode$maybe($author$project$Main$projectDecoder),
 		$elm$json$Json$Decode$succeed($author$project$Main$ProjectTransactionsView)));
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
+var $elm$core$Maybe$destruct = F3(
+	function (_default, func, maybe) {
+		if (maybe.$ === 'Just') {
+			var a = maybe.a;
+			return func(a);
+		} else {
+			return _default;
+		}
+	});
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Main$setApiKey = _Platform_outgoingPort(
+	'setApiKey',
+	function ($) {
+		return A3($elm$core$Maybe$destruct, $elm$json$Json$Encode$null, $elm$json$Json$Encode$string, $);
+	});
 var $elm$random$Random$step = F2(
 	function (_v0, seed) {
 		var generator = _v0.a;
 		return generator(seed);
 	});
-var $elm$core$Debug$toString = _Debug_toString;
+var $author$project$Main$stockInEncoder = function (stockIn) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$int(stockIn.id)),
+				_Utils_Tuple2(
+				'uid',
+				$elm$json$Json$Encode$string(stockIn.uid)),
+				_Utils_Tuple2(
+				'pic',
+				$elm$json$Json$Encode$string(stockIn.pic)),
+				_Utils_Tuple2(
+				'itemId',
+				$elm$json$Json$Encode$int(stockIn.itemId)),
+				_Utils_Tuple2(
+				'qty',
+				$elm$json$Json$Encode$int(stockIn.qty))
+			]));
+};
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
 		if (maybePort.$ === 'Nothing') {
@@ -8452,16 +8576,95 @@ var $author$project$Main$update = F2(
 						model,
 						{url: url}));
 			case 'Login':
-				return $author$project$Main$fetchByUrl(
+				var loginState = model.loginState;
+				var newLoginState = _Utils_update(
+					loginState,
+					{requestStatus: $author$project$Main$Loading});
+				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{loggedIn: true}));
+						{loginState: newLoginState}),
+					$elm$http$Http$request(
+						{
+							body: $elm$http$Http$jsonBody(
+								$author$project$Main$loginInfoEncoder(model.loginState.loginInfo)),
+							expect: $elm$http$Http$expectString($author$project$Main$GotLoginResponse),
+							headers: _List_Nil,
+							method: 'POST',
+							timeout: $elm$core$Maybe$Nothing,
+							tracker: $elm$core$Maybe$Nothing,
+							url: model.baseUrl + '/login'
+						}));
+			case 'ChangeLoginUsername':
+				var username = msg.a;
+				var loginState = model.loginState;
+				var loginInfo = loginState.loginInfo;
+				var newLoginInfo = _Utils_update(
+					loginInfo,
+					{username: username});
+				var newLoginState = _Utils_update(
+					loginState,
+					{loginInfo: newLoginInfo});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loginState: newLoginState}),
+					$elm$core$Platform$Cmd$none);
+			case 'ChangeLoginPassword':
+				var password = msg.a;
+				var loginState = model.loginState;
+				var loginInfo = loginState.loginInfo;
+				var newLoginInfo = _Utils_update(
+					loginInfo,
+					{password: password});
+				var newLoginState = _Utils_update(
+					loginState,
+					{loginInfo: newLoginInfo});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loginState: newLoginState}),
+					$elm$core$Platform$Cmd$none);
+			case 'GotLoginResponse':
+				var res = msg.a;
+				if (res.$ === 'Ok') {
+					var apiKey = res.a;
+					var loginState = model.loginState;
+					var newLoginState = _Utils_update(
+						loginState,
+						{requestStatus: $author$project$Main$Success});
+					var newModel = _Utils_update(
+						model,
+						{
+							apiKey: $elm$core$Maybe$Just(apiKey),
+							loggedIn: true,
+							loginState: newLoginState
+						});
+					return _Utils_Tuple2(
+						newModel,
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									$author$project$Main$setApiKey(
+									$elm$core$Maybe$Just(apiKey))
+								])));
+				} else {
+					var loginState = model.loginState;
+					var newLoginState = _Utils_update(
+						loginState,
+						{requestStatus: $author$project$Main$Error});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{loginState: newLoginState}),
+						$elm$core$Platform$Cmd$none);
+				}
 			case 'Logout':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{loggedIn: false}),
-					$elm$core$Platform$Cmd$none);
+						{apiKey: $elm$core$Maybe$Nothing, loggedIn: false}),
+					$author$project$Main$setApiKey($elm$core$Maybe$Nothing));
 			case 'NavbarMsg':
 				var state = msg.a;
 				return _Utils_Tuple2(
@@ -8807,9 +9010,9 @@ var $author$project$Main$update = F2(
 				var qtyString = msg.a;
 				var transactionState = model.transactionState;
 				var qty = function () {
-					var _v11 = $elm$core$String$toInt(qtyString);
-					if (_v11.$ === 'Just') {
-						var q = _v11.a;
+					var _v12 = $elm$core$String$toInt(qtyString);
+					if (_v12.$ === 'Just') {
+						var q = _v12.a;
 						return q;
 					} else {
 						return 0;
@@ -8867,13 +9070,13 @@ var $author$project$Main$update = F2(
 				var transactionState = model.transactionState;
 				var transactionView = transactionState.transactionView;
 				var itemTransactions = transactionView.itemTransactions;
-				var _v12 = A2($elm$random$Random$step, $danyx23$elm_uuid$Uuid$uuidGenerator, model.seed);
-				var newUuid = _v12.a;
-				var newSeed = _v12.b;
+				var _v13 = A2($elm$random$Random$step, $danyx23$elm_uuid$Uuid$uuidGenerator, model.seed);
+				var newUuid = _v13.a;
+				var newSeed = _v13.b;
 				var newItemTransactionView = function () {
-					var _v14 = model.transactionState.selectedItem;
-					if (_v14.$ === 'Just') {
-						var item = _v14.a;
+					var _v15 = model.transactionState.selectedItem;
+					if (_v15.$ === 'Just') {
+						var item = _v15.a;
 						return $elm$core$Maybe$Just(
 							{
 								item: item,
@@ -8944,9 +9147,9 @@ var $author$project$Main$update = F2(
 				var transactionState = model.transactionState;
 				var transaction = model.transactionState.transactionView.transaction;
 				var projectId = function () {
-					var _v15 = model.transactionState.projectTransactionsView.project;
-					if (_v15.$ === 'Just') {
-						var project = _v15.a;
+					var _v16 = model.transactionState.projectTransactionsView.project;
+					if (_v16.$ === 'Just') {
+						var project = _v16.a;
 						return project.id;
 					} else {
 						return 0;
@@ -8987,9 +9190,9 @@ var $author$project$Main$update = F2(
 								[
 									A2($elm$browser$Browser$Navigation$pushUrl, newModel.key, '/#/transactions'),
 									function () {
-									var _v17 = model.transactionState.projectTransactionsView.project;
-									if (_v17.$ === 'Just') {
-										var project = _v17.a;
+									var _v18 = model.transactionState.projectTransactionsView.project;
+									if (_v18.$ === 'Just') {
+										var project = _v18.a;
 										return $elm$http$Http$get(
 											{
 												expect: A2($elm$http$Http$expectJson, $author$project$Main$GotProjectTransaction, $author$project$Main$projectTransactionsViewDecoder),
@@ -9167,14 +9370,18 @@ var $author$project$Main$update = F2(
 							{itemState: newItemState}),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'GotItemStockInsView':
 				var res = msg.a;
 				var itemState = model.itemState;
 				if (res.$ === 'Ok') {
 					var itemStockInsView = res.a;
+					var stockIn = model.itemState.stockIn;
+					var newStockIn = _Utils_update(
+						stockIn,
+						{itemId: itemStockInsView.item.id});
 					var newItemState = _Utils_update(
 						itemState,
-						{itemStockIns: itemStockInsView, requestStatus: $author$project$Main$Success});
+						{itemStockIns: itemStockInsView, requestStatus: $author$project$Main$Success, stockIn: newStockIn});
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -9190,9 +9397,90 @@ var $author$project$Main$update = F2(
 							{itemState: newItemState}),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'AddStockIn':
+				var itemState = model.itemState;
+				var newItemState = _Utils_update(
+					itemState,
+					{requestStatus: $author$project$Main$Loading});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{itemState: newItemState}),
+					$elm$http$Http$request(
+						{
+							body: $elm$http$Http$jsonBody(
+								$author$project$Main$stockInEncoder(model.itemState.stockIn)),
+							expect: $elm$http$Http$expectWhatever($author$project$Main$SavedStockIns),
+							headers: _List_Nil,
+							method: 'POST',
+							timeout: $elm$core$Maybe$Nothing,
+							tracker: $elm$core$Maybe$Nothing,
+							url: model.baseUrl + '/stockins'
+						}));
+			case 'SavedStockIns':
+				var res = msg.a;
+				if (res.$ === 'Ok') {
+					return _Utils_Tuple2(
+						model,
+						$elm$http$Http$request(
+							{
+								body: $elm$http$Http$emptyBody,
+								expect: A2($elm$http$Http$expectJson, $author$project$Main$GotItemStockInsView, $author$project$Main$itemStockInsViewDecoder),
+								headers: _List_Nil,
+								method: 'GET',
+								timeout: $elm$core$Maybe$Nothing,
+								tracker: $elm$core$Maybe$Nothing,
+								url: model.baseUrl + ('/items/' + ($elm$core$String$fromInt(model.itemState.itemStockIns.item.id) + '/stockins'))
+							}));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'ChangeStockInQty':
+				var qtyString = msg.a;
+				var parsedQty = A2(
+					$elm$core$Maybe$withDefault,
+					0,
+					$elm$core$String$toInt(qtyString));
+				var itemState = model.itemState;
+				var stockIn = itemState.stockIn;
+				var newStockIn = _Utils_update(
+					stockIn,
+					{qty: parsedQty});
+				var newItemState = _Utils_update(
+					itemState,
+					{stockIn: newStockIn});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{itemState: newItemState}),
+					$elm$core$Platform$Cmd$none);
+			case 'DeleteStockInAlert':
+				var stockIn = msg.a;
+				return _Utils_Tuple2(
+					model,
+					$author$project$Main$deleteStockInAlert(stockIn));
+			default:
+				var idString = msg.a;
+				var itemState = model.itemState;
+				var newItemState = _Utils_update(
+					itemState,
+					{requestStatus: $author$project$Main$Loading});
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{itemState: newItemState}),
+					$elm$http$Http$request(
+						{
+							body: $elm$http$Http$emptyBody,
+							expect: $elm$http$Http$expectWhatever($author$project$Main$SavedStockIns),
+							headers: _List_Nil,
+							method: 'DELETE',
+							timeout: $elm$core$Maybe$Nothing,
+							tracker: $elm$core$Maybe$Nothing,
+							url: model.baseUrl + ('/stockins/' + idString)
+						}));
 		}
 	});
-var $elm$html$Html$b = _VirtualDom_node('b');
 var $author$project$Main$ChangeInitialStock = function (a) {
 	return {$: 'ChangeInitialStock', a: a};
 };
@@ -11261,6 +11549,7 @@ var $rundis$elm_bootstrap$Bootstrap$Spinner$Attrs = function (a) {
 var $rundis$elm_bootstrap$Bootstrap$Spinner$attrs = function (attrs_) {
 	return $rundis$elm_bootstrap$Bootstrap$Spinner$Attrs(attrs_);
 };
+var $elm$html$Html$b = _VirtualDom_node('b');
 var $cuducos$elm_format_number$FormatNumber$Parser$FormattedNumber = F5(
 	function (original, integers, decimals, prefix, suffix) {
 		return {decimals: decimals, integers: integers, original: original, prefix: prefix, suffix: suffix};
@@ -11996,11 +12285,39 @@ var $author$project$Main$itemPage = function (model) {
 					]))
 			]));
 };
+var $author$project$Main$ChangeLoginPassword = function (a) {
+	return {$: 'ChangeLoginPassword', a: a};
+};
+var $author$project$Main$ChangeLoginUsername = function (a) {
+	return {$: 'ChangeLoginUsername', a: a};
+};
 var $author$project$Main$Login = {$: 'Login'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Attrs = function (a) {
+	return {$: 'Attrs', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$attrs = function (attrs_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Attrs(attrs_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Color = function (a) {
+	return {$: 'Color', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$color = function (color_) {
+	return $rundis$elm_bootstrap$Bootstrap$Spinner$Color(color_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$form = F2(
+	function (attributes, children) {
+		return A2($elm$html$Html$form, attributes, children);
+	});
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Light = {$: 'Light'};
 var $rundis$elm_bootstrap$Bootstrap$Button$light = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
 	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Light));
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role = function (a) {
+	return {$: 'Role', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Text$light = $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role($rundis$elm_bootstrap$Bootstrap$Internal$Role$Light);
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Password = {$: 'Password'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$password = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Password);
 var $author$project$Main$loginPage = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -12020,6 +12337,65 @@ var $author$project$Main$loginPage = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text('Cozy PoS')
+					])),
+				A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$form,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Username...'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$attrs(
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('m-2')
+											])),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(model.loginState.loginInfo.username),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$ChangeLoginUsername)
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$password(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Password...'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$attrs(
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('m-2')
+											])),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(model.loginState.loginInfo.password),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$ChangeLoginPassword)
+									]))
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						_Utils_eq(model.loginState.requestStatus, $author$project$Main$Loading) ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Spinner$spinner,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Spinner$color($rundis$elm_bootstrap$Bootstrap$Text$light)
+							]),
+						_List_Nil) : (_Utils_eq(model.loginState.requestStatus, $author$project$Main$Error) ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'color', 'red'),
+								$elm$html$Html$Attributes$class('d-flex justify-content-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Error logging in, invalid username/password.')
+							])) : A2($elm$html$Html$span, _List_Nil, _List_Nil))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -12049,10 +12425,6 @@ var $author$project$Main$InputProjectName = function (a) {
 var $author$project$Main$SaveProject = {$: 'SaveProject'};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$Date = {$: 'Date'};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$date = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Date);
-var $rundis$elm_bootstrap$Bootstrap$Form$form = F2(
-	function (attributes, children) {
-		return A2($elm$html$Html$form, attributes, children);
-	});
 var $author$project$Main$projectDetailPage = F2(
 	function (model, projectId) {
 		return A2(
@@ -12074,24 +12446,15 @@ var $author$project$Main$projectDetailPage = F2(
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Back')
+									A2(
+									$rundis$elm_bootstrap$Bootstrap$Button$button,
+									_List_fromArray(
+										[$rundis$elm_bootstrap$Bootstrap$Button$secondary]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Back')
+										]))
 								]))
-						])),
-					$elm$html$Html$text('This is the project detail page, project id: ' + projectId),
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							$elm$core$Debug$toString(model.projectState.project))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Some form')
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -12290,8 +12653,15 @@ var $author$project$Main$projectPage = function (model) {
 					]))
 			]));
 };
+var $author$project$Main$AddStockIn = {$: 'AddStockIn'};
+var $author$project$Main$ChangeStockInQty = function (a) {
+	return {$: 'ChangeStockInQty', a: a};
+};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$Number = {$: 'Number'};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$number = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Number);
+var $author$project$Main$DeleteStockInAlert = function (a) {
+	return {$: 'DeleteStockInAlert', a: a};
+};
 var $author$project$Main$stockInCard = function (stockIn) {
 	return A2(
 		$rundis$elm_bootstrap$Bootstrap$ListGroup$li,
@@ -12317,7 +12687,12 @@ var $author$project$Main$stockInCard = function (stockIn) {
 						A2(
 						$rundis$elm_bootstrap$Bootstrap$Button$button,
 						_List_fromArray(
-							[$rundis$elm_bootstrap$Bootstrap$Button$danger, $rundis$elm_bootstrap$Bootstrap$Button$small]),
+							[
+								$rundis$elm_bootstrap$Bootstrap$Button$danger,
+								$rundis$elm_bootstrap$Bootstrap$Button$small,
+								$rundis$elm_bootstrap$Bootstrap$Button$onClick(
+								$author$project$Main$DeleteStockInAlert(stockIn))
+							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Delete')
@@ -12420,7 +12795,8 @@ var $author$project$Main$stockInPage = F2(
 													_List_fromArray(
 														[
 															$rundis$elm_bootstrap$Bootstrap$Form$Input$id('stockinqty'),
-															$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Qty...')
+															$rundis$elm_bootstrap$Bootstrap$Form$Input$placeholder('Qty...'),
+															$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$Main$ChangeStockInQty)
 														]))
 												])),
 											A2(
@@ -12431,7 +12807,10 @@ var $author$project$Main$stockInPage = F2(
 													A2(
 													$rundis$elm_bootstrap$Bootstrap$Button$button,
 													_List_fromArray(
-														[$rundis$elm_bootstrap$Bootstrap$Button$primary]),
+														[
+															$rundis$elm_bootstrap$Bootstrap$Button$primary,
+															$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$Main$AddStockIn)
+														]),
 													_List_fromArray(
 														[
 															$elm$html$Html$text('Add')
@@ -13266,7 +13645,9 @@ var $author$project$Main$filterByItemTransactionName = F2(
 			$elm$core$List$foldl,
 			F2(
 				function (itemTransaction, acc) {
-					return _Utils_ap(acc, itemTransaction.item.name);
+					return _Utils_ap(
+						acc,
+						$elm$core$String$toLower(itemTransaction.item.name));
 				}),
 			'',
 			transactionView.itemTransactions);
@@ -13291,7 +13672,6 @@ var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetHeight = A2($elm$j
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetWidth = A2($elm$json$Json$Decode$field, 'offsetWidth', $elm$json$Json$Decode$float);
 var $elm$json$Json$Decode$map4 = _Json_map4;
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetLeft = A2($elm$json$Json$Decode$field, 'offsetLeft', $elm$json$Json$Decode$float);
-var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $rundis$elm_bootstrap$Bootstrap$Utilities$DomHelper$offsetParent = F2(
 	function (x, decoder) {
 		return $elm$json$Json$Decode$oneOf(
@@ -13765,18 +14145,7 @@ var $author$project$Main$view = function (model) {
 	var body = _v0.b;
 	return {
 		body: _List_fromArray(
-			[
-				body,
-				$elm$html$Html$text('The current URL is: '),
-				A2(
-				$elm$html$Html$b,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(
-						$elm$url$Url$toString(model.url))
-					]))
-			]),
+			[body]),
 		title: 'Cozy PoS | ' + title
 	};
 };
@@ -13792,8 +14161,21 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 					return A2(
 						$elm$json$Json$Decode$andThen,
 						function (baseUrl) {
-							return $elm$json$Json$Decode$succeed(
-								{baseUrl: baseUrl, currentDate: currentDate, seed: seed});
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (apiKey) {
+									return $elm$json$Json$Decode$succeed(
+										{apiKey: apiKey, baseUrl: baseUrl, currentDate: currentDate, seed: seed});
+								},
+								A2(
+									$elm$json$Json$Decode$field,
+									'apiKey',
+									$elm$json$Json$Decode$oneOf(
+										_List_fromArray(
+											[
+												$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+												A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, $elm$json$Json$Decode$string)
+											]))));
 						},
 						A2($elm$json$Json$Decode$field, 'baseUrl', $elm$json$Json$Decode$string));
 				},
