@@ -13,7 +13,7 @@ sudo chmod +x ./start.sh
 # To optimize:
 sudo chmod +x ./optimize.sh
 sudo npm i -g uglify-js
-./optimize.sh
+./optimize.sh src/Main.elm
 ```
 3. Serve with simple HTTP Server
 ```bash
