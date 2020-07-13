@@ -354,6 +354,7 @@ type alias StockIn =
   , uid : String
   , pic : String
   , itemId: Int
+  , projectId : Int
   , qty : Int
   , updatedAt: String
   , createdAt: String
@@ -365,6 +366,7 @@ initialStockIn =
   , uid = ""
   , pic = ""
   , itemId = 0
+  , projectId = 0
   , qty = 0
   , updatedAt = ""
   , createdAt = ""
@@ -377,9 +379,11 @@ stockInDecoder =
     |> required "uid" string
     |> required "pic" string
     |> required "itemId" int
+    |> required "projectId" int
     |> required "qty" int
     |> required "updated_at" string
     |> required "created_at" string
+
 stockInEncoder : StockIn -> Encode.Value
 stockInEncoder stockIn =
   Encode.object
@@ -387,6 +391,7 @@ stockInEncoder stockIn =
     , ( "uid", Encode.string stockIn.uid )
     , ( "pic", Encode.string stockIn.pic )
     , ( "itemId", Encode.int stockIn.itemId )
+    , ( "projectId", Encode.int stockIn.projectId )
     , ( "qty", Encode.int stockIn.qty ) 
     ]
 
@@ -1438,7 +1443,14 @@ update msg model =
     SelectStockInProject project ->
       let
         itemState = model.itemState
-        newItemState = { itemState | selectedProject = Just project }
+        stockIn = itemState.stockIn
+
+        newStockIn = { stockIn | projectId = project.id }
+        newItemState = 
+          { itemState 
+          | selectedProject = Just project 
+          , stockIn = newStockIn
+          }
         -- transactionState = model.transactionState
         -- projectTransactionsView = transactionState.projectTransactionsView
 
