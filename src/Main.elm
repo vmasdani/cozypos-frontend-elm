@@ -142,6 +142,8 @@ type alias ItemModel =
   , initialStock : Int
   , itemStockIns : ItemStockInsView
   , stockIn : StockIn
+  , selectedProject : Maybe Project
+  , projectDropdown : Dropdown.State
   }
 
 initialItemStockInsView : ItemStockInsView
@@ -628,6 +630,8 @@ init flag url key =
       , initialStock = 0
       , itemStockIns = initialItemStockInsView
       , stockIn = initialStockIn
+      , selectedProject = Nothing
+      , projectDropdown = Dropdown.initialState
       }
     loggedIn =
       case flag.apiKey of
@@ -726,6 +730,8 @@ type Msg
   | ChangeStockInQty String
   | DeleteStockInAlert StockIn
   | DeleteStockIn String
+  | ToggleStockInDropdownState Dropdown.State
+  | SelectStockInProject Project
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -1422,6 +1428,32 @@ update msg model =
           }
       )
 
+    ToggleStockInDropdownState state ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | projectDropdown = state }
+      in
+      ( { model | itemState = newItemState }, Cmd.none )
+
+    SelectStockInProject project ->
+      let
+        itemState = model.itemState
+        newItemState = { itemState | selectedProject = Just project }
+        -- transactionState = model.transactionState
+        -- projectTransactionsView = transactionState.projectTransactionsView
+
+        -- newProjectTransactionsView = { projectTransactionsView | project = Just project }
+        -- newTransactionState = 
+        --   { transactionState  
+        --   | requestStatus = Loading
+        --   , selectedProject = project.name
+        --   , projectTransactionsView = newProjectTransactionsView
+        --   }
+      in
+        ( { model | itemState = newItemState }
+        , Cmd.none
+        )
+
 -- SUBSCRIPTIONS
 
 
@@ -1429,6 +1461,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch 
     [ Dropdown.subscriptions model.transactionState.projectsDropdown ToggleProject 
+    , Dropdown.subscriptions model.itemState.projectDropdown ToggleStockInDropdownState
     , Navbar.subscriptions model.navbarState NavbarMsg
     , deleteStockIn DeleteStockIn
     ]
@@ -1560,7 +1593,26 @@ stockInPage model stockInId =
         , h3 [ class "d-flex justify-content-center" ] [ text <| "Stock-ins: " ++ model.itemState.itemStockIns.item.name ]
         , div []
             [ Form.form []
-                [ Form.group []
+                [ div []
+                    [ Dropdown.dropdown
+                        model.itemState.projectDropdown
+                          { options = []
+                          , toggleMsg = ToggleStockInDropdownState
+                          , toggleButton =
+                              Dropdown.toggle 
+                                [ Button.secondary ] 
+                                [ text <| 
+                                    case model.itemState.selectedProject of
+                                      Just project ->
+                                        project.name
+
+                                      Nothing ->
+                                        "Select Project"
+                                ]
+                          , items =  List.map projectStockInDropdownItem model.transactionState.projects
+                          }
+                    ]
+                , Form.group []
                     [ Form.label [ for "stockinqty" ] [ text "Stock in qty" ]
                     , Input.number 
                         [ Input.id "stockinqty" 
@@ -1582,6 +1634,12 @@ stockInPage model stockInId =
             ]
         ]
     ]
+
+projectStockInDropdownItem : Project -> Dropdown.DropdownItem Msg
+projectStockInDropdownItem project =
+  Dropdown.buttonItem 
+    [ onClick (SelectStockInProject project) ] 
+    [ text project.name ]
 
 stockInCard : StockIn -> ListGroup.Item Msg
 stockInCard stockIn =
@@ -1626,7 +1684,7 @@ transactionPage model =
               , toggleButton =
                   Dropdown.toggle [ Button.primary ] [ text model.transactionState.selectedProject ]
               , items =
-                  List.map (\project ->  Dropdown.buttonItem [ onClick (SelectProject project) ] [ text project.name ] ) model.transactionState.projects
+                  List.map projectDropdownItem model.transactionState.projects
               }
         , addButton
         ]
@@ -1662,6 +1720,12 @@ transactionPage model =
               div [ class "my-3" ] [text "No project selected."]
         ]
     ]
+
+projectDropdownItem : Project -> Dropdown.DropdownItem Msg
+projectDropdownItem project =
+  Dropdown.buttonItem 
+    [ onClick (SelectProject project) ] 
+    [ text project.name ]
 
 transactionCard : TransactionView -> ListGroup.Item msg
 transactionCard transactionView =
